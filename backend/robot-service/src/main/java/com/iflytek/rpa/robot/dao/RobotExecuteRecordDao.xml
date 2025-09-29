@@ -105,6 +105,20 @@
             </foreach>
     </select>
 
+    <select id="robotOverview" resultType = "com.iflytek.rpa.monitor.entity.RobotMonitorDto">
+        select count(*) executeTotal, sum(result = 'robotSuccess') executeSuccess, sum(result = 'robotFail') executeFail, sum(result = 'robotCancel') executeAbort
+        from robot_execute_record
+        <where>
+            result in ('robotSuccess','robotFail','robotCancel')
+            and tenant_id = #{tenantId}
+            and robot_id = #{robotId}
+            <if test="robotVersion != null">
+                and robot_version= #{robotVersion}
+            </if>
+            and start_time &lt;= #{countTime}
+        </where>
+    </select>
+
     <select id="robotOverviewWithoutVersion" resultType = "com.iflytek.rpa.robot.entity.vo.RobotExecutionData">
         select count(*) executeTotal, sum(result = 'robotSuccess') executeSuccess, sum(result = 'robotFail') executeFail, sum(result = 'robotCancel') executeAbort,sum(execute_time) executeTime
         from robot_execute_record
