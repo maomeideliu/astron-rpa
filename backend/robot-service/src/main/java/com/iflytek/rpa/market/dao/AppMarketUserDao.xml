@@ -56,38 +56,38 @@
 
     <select id="getUserList" resultType="com.iflytek.rpa.market.entity.MarketDto">
         select
-            amu.id id,
-            amu.user_type userType,
-            amu.creator_id creatorId,
-            amu.create_time createTime,
-            tu.login_name userName,
-            tu.name realName,
-            tu.email email,
-            tu.phone phone
+        amu.id id,
+        amu.user_type userType,
+        amu.creator_id creatorId,
+        amu.create_time createTime,
+        tu.name userName,
+        tu.display_name realName,
+        tu.email email,
+        tu.phone phone
         from app_market_user amu
-            left join ${databaseName}.t_uap_user tu on tu.id = amu.creator_id and tu.is_delete = 0
+        left join ${databaseName}.user tu on tu.id = amu.creator_id and tu.is_deleted = 0
         where
-            amu.market_id = #{entity.marketId}
-            and amu.deleted = 0
-            <if test="entity.userName != null and entity.userName != ''">
-                and upper(tu.login_name) like concat('%', upper(#{entity.userName}), '%')
-            </if>
-            <if test="entity.realName != null and entity.realName != ''">
-                and upper(tu.name) like concat('%', upper(#{entity.realName}), '%')
-            </if>
-            <choose>
-                <when test="entity.sortBy !=null and entity.sortBy != ''">
-                    <if test="entity.sortType == 'descend'.toString()">
-                        order by ${entity.sortBy} desc
-                    </if>
-                    <if test="entity.sortType == 'ascend'.toString() ">
-                        order by ${entity.sortBy} asc
-                    </if>
-                </when>
-                <otherwise>
-                    order by createTime desc
-                </otherwise>
-            </choose>
+        amu.market_id = #{entity.marketId}
+        and amu.deleted = 0
+        <if test="entity.userName != null and entity.userName != ''">
+            and upper(tu.name) like concat('%', upper(#{entity.userName}), '%')
+        </if>
+        <if test="entity.realName != null and entity.realName != ''">
+            and upper(tu.display_name) like concat('%', upper(#{entity.realName}), '%')
+        </if>
+        <choose>
+            <when test="entity.sortBy !=null and entity.sortBy != ''">
+                <if test="entity.sortType == 'descend'.toString()">
+                    order by ${entity.sortBy} desc
+                </if>
+                <if test="entity.sortType == 'ascend'.toString() ">
+                    order by ${entity.sortBy} asc
+                </if>
+            </when>
+            <otherwise>
+                order by createTime desc
+            </otherwise>
+        </choose>
     </select>
 
 
@@ -134,26 +134,26 @@
 
     <select id="getUserUnDeployed" resultType="com.iflytek.rpa.market.entity.MarketDto">
         select
-            phone,
-            name realName,
-            id creatorId
-        from ${databaseName}.t_uap_user tu
+        phone,
+        display_name realName,
+        id creatorId
+        from ${databaseName}.user tu
         where
-          exists(select id
-                       from app_market_user amu
-                       where amu.creator_id = tu.id and amu.deleted = 0 and amu.market_id = #{entity.marketId} and amu.tenant_id = #{entity.tenantId})
-          and not exists(select id
-                         from robot_execute re
-                         where re.deleted = 0
-                           and re.creator_id = tu.id
-                           and re.data_source = 'market'
-                           and re.market_id = #{entity.marketId}
-                           and re.app_id = #{entity.appId})
-          <if test="entity.phone != null and entity.phone != ''">
-              and phone like CONCAT('%',#{entity.phone},'%')
-          </if>
-          and is_delete = 0
-            limit 20
+        exists(select id
+        from app_market_user amu
+        where amu.creator_id = tu.id and amu.deleted = 0 and amu.market_id = #{entity.marketId} and amu.tenant_id = #{entity.tenantId})
+        and not exists(select id
+        from robot_execute re
+        where re.deleted = 0
+        and re.creator_id = tu.id
+        and re.data_source = 'market'
+        and re.market_id = #{entity.marketId}
+        and re.app_id = #{entity.appId})
+        <if test="entity.phone != null and entity.phone != ''">
+            and phone like CONCAT('%',#{entity.phone},'%')
+        </if>
+        and is_deleted = 0
+        limit 20
     </select>
 
 
@@ -161,44 +161,42 @@
 <!--    已经在团队内的不再查询, 已禁用的不再查询-->
     <select id="getUserByPhone" resultType="com.iflytek.rpa.market.entity.MarketDto">
         select
-            phone,
-            name realName,
-            id creatorId
-        from ${databaseName}.t_uap_user tu
+        phone,
+        display_name realName,
+        id creatorId
+        from ${databaseName}.user tu
         where
-            not exists(select id
-                            from app_market_user amu
-                            where amu.creator_id = tu.id and amu.deleted = 0 and amu.market_id = #{entity.marketId} and amu.tenant_id = #{entity.tenantId})
-            and phone like CONCAT('%',#{entity.phone},'%')
-            and is_delete = 0
-            limit 20
+        not exists(select id
+        from app_market_user amu
+        where amu.creator_id = tu.id and amu.deleted = 0 and amu.market_id = #{entity.marketId} and amu.tenant_id = #{entity.tenantId})
+        and phone like CONCAT('%',#{entity.phone},'%')
+        and is_deleted = 0
+        limit 20
     </select>
 
     <select id="getUserByPhoneForOwner" resultType="com.iflytek.rpa.market.entity.MarketDto">
         select
-            uu.phone phone,
-            uu.name realName,
-            utu.user_id creatorId
+        uu.phone phone,
+        uu.display_name realName,
+        uu.id creatorId
         from
-            ${databaseName}.t_uap_user uu
-            inner join ${databaseName}.t_uap_tenant_user utu on uu.id = utu.user_id
+        ${databaseName}.user uu
         where
-            uu.phone like CONCAT('%',#{entity.phone},'%')
-            and utu.tenant_id = #{entity.tenantId}
-            and uu.is_delete = 0
-            limit 20
+        uu.phone like CONCAT('%',#{entity.phone},'%')
+        and uu.owner = #{entity.tenantId}
+        and uu.is_deleted = 0
+        limit 20
     </select>
 
     <select id="getTenantUser" resultType="com.iflytek.rpa.market.entity.TenantUser">
         select
-            utu.tenant_id tenantId,
-            uu.id userId
+        uu.owner tenantId,
+        uu.id userId
         from
-            ${databaseName}.t_uap_user uu
-            inner join ${databaseName}.t_uap_tenant_user utu on uu.id = utu.user_id
+        ${databaseName}.user uu
         where
-        uu.is_delete = 0
-        and utu.tenant_id = #{tenantId}
+        uu.is_deleted = 0
+        and uu.owner = #{tenantId}
         and uu.id in
         <foreach collection="entities" item="entity" open="(" close=")" separator=",">
             #{entity.creatorId}

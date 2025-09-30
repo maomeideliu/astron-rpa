@@ -44,10 +44,9 @@
         ORDER BY id ASC
     </select>
     <select id="getAllTenantId" resultType="java.lang.String">
-        select id
-        from ${databaseName}.t_uap_tenant
-        where is_delete = 0
-          and id != 'default-tenant'
+        select name
+        from ${databaseName}.organization
+        where name != 'default-tenant'
     </select>
 
     <select id="getAvailableSharedVars" resultType="com.iflytek.rpa.robot.entity.SharedVar">

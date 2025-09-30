@@ -47,7 +47,7 @@ public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppM
     @Autowired
     private RobotExecuteDao robotExecuteDao;
 
-    @Value("${uap.database.name:uap_db}")
+    @Value("${casdoor.database.name:casdoor}")
     private String databaseName;
 
 

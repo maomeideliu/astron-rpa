@@ -375,7 +375,7 @@
         select
         re.id,
         re.creator_id,
-        tu.name as name,
+        tu.display_name as name,
         re.update_time,
         re.app_version
         from robot_execute re
@@ -387,7 +387,7 @@
         and re.tenant_id = #{entity.tenantId}
         and re.data_source = 'market'
         <if test="entity.realName != null and entity.realName != '' ">
-            and UPPER(tu.name) like concat('%',UPPER(#{entity.realName}),'%')
+            and UPPER(tu.display_name) like concat('%',UPPER(#{entity.realName}),'%')
         </if>
     </select>
 

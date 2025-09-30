@@ -110,10 +110,10 @@
           AND tag_name LIKE CONCAT('%', #{tagName}, '%')
     </select>
     <select id="isTenantAdmin" resultType="java.lang.Integer">
-        select utu.tenant_user_type
-        from ${databaseName}.t_uap_tenant_user utu
-        where utu.user_id = #{userId}
-          and utu.tenant_id = #{tenantId}
+        select utu.is_admin
+        from ${databaseName}.user utu
+        where utu.id = #{userId}
+        and utu.owner = #{tenantId}
     </select>
 
     <!-- 分页查询共享文件列表 -->
