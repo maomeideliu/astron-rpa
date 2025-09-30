@@ -89,7 +89,7 @@ class WsApp:
         if watch.callback:
             watch.callback(*args, **kwargs)
 
-    def event(self, channel: str, key: str = "", func: Callable[[BaseMsg, Any], Any] = None):
+    def event(self, channel: str, key: str = "", func: Callable[[BaseMsg, Any], Any] | None = None):
         """
         _add_route 路由添加
         """
@@ -182,7 +182,7 @@ class WsApp:
     def send_reply(self, msg: BaseMsg, timeout, callback_func=None):
         msg.need_reply = True
 
-        def callback(watch_msg: BaseMsg = None, e: Exception = None):
+        def callback(watch_msg: BaseMsg | None = None, e: Exception | None = None):
             nonlocal callback_func
             if isinstance(e, WatchTimeout):
                 # 已经退出

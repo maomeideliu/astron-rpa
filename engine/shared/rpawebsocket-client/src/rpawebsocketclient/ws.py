@@ -32,7 +32,7 @@ def gen_event_id():
     return "{}".format(str(uid.uuid4()))
 
 
-def default_error_format(e: Exception = None) -> Union[None, dict]:
+def default_error_format(e: Exception | None = None) -> Union[None, dict]:
     """
     default_error_format 默认错误格式化
     """
@@ -212,7 +212,7 @@ def gen_ack_msg(event_id: str = ""):
     return BaseMsg(channel=AckMsg.channel, event_id=event_id)
 
 
-def gen_exit_msg(data: dict = None):
+def gen_exit_msg(data: dict | None = None):
     """
     gen_exit_msg 快速生成exit退出消息
     """
