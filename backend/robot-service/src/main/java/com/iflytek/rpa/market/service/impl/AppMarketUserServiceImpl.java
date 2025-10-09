@@ -9,6 +9,8 @@ import com.iflytek.rpa.market.entity.AppMarketUser;
 import com.iflytek.rpa.market.entity.MarketDto;
 import com.iflytek.rpa.market.entity.TenantUser;
 import com.iflytek.rpa.market.service.AppMarketUserService;
+import com.iflytek.rpa.notify.entity.dto.CreateNotifyDto;
+import com.iflytek.rpa.notify.service.NotifySendService;
 import com.iflytek.rpa.robot.dao.RobotExecuteDao;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
@@ -43,6 +45,9 @@ public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppM
 
     @Autowired
     private AppMarketDao appMarketDao;
+
+    @Autowired
+    private NotifySendService notifySendService;
 
     @Autowired
     private RobotExecuteDao robotExecuteDao;
@@ -258,6 +263,13 @@ public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppM
             }
         }
 
+        // 产生邀人消息，将marketId,role插入消息表
+        CreateNotifyDto createNotifyDto = new CreateNotifyDto();
+        createNotifyDto.setMarketUserList(userInfoList);
+        createNotifyDto.setTenantId(tenantId);
+        createNotifyDto.setMessageType("teamMarketInvite");
+        createNotifyDto.setMarketId(marketId);
+        notifySendService.createNotify(createNotifyDto);
         return AppResponse.success(true);
     }
 }
