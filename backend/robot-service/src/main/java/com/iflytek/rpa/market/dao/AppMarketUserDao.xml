@@ -16,38 +16,38 @@
 
     <select id="getUserListForUpdate" resultMap="AppMarketUserMap">
         select
-            amu.*
+        amu.*
         from
-            app_market_user amu, component_manage cm
+        app_market_user amu, component_manage cm
 
         where
-            amu.market_id = #{marketId}
-            and amu.deleted = 0
-            and amu.creator_id = cm.creator_id
-            and cm.deleted = 0
-            and cm.app_id = #{appId}
+        amu.market_id = #{marketId}
+        and amu.deleted = 0
+        and amu.creator_id = cm.creator_id
+        and cm.deleted = 0
+        and cm.app_id = #{appId}
     </select>
 
 
     <insert id="addDefaultUser">
         insert into app_market_user
-            (tenant_id,
-            market_id,
-            user_type,
-            creator_id,
-            create_time,
-            updater_id,
-            update_time,
-            deleted)
+        (tenant_id,
+        market_id,
+        user_type,
+        creator_id,
+        create_time,
+        updater_id,
+        update_time,
+        deleted)
         values
-            (#{entity.tenantId},
-            #{entity.marketId},
-           'owner',
-            #{entity.creatorId},
-            now(),
-            #{entity.updaterId},
-            now(),
-            0)
+        (#{entity.tenantId},
+        #{entity.marketId},
+        'owner',
+        #{entity.creatorId},
+        now(),
+        #{entity.updaterId},
+        now(),
+        0)
     </insert>
 
 
@@ -95,9 +95,9 @@
         update app_market_user
         set deleted = 1
         where
-            market_id = #{entity.marketId}
-            and user_type != 'owner'
-            and creator_id = #{entity.creatorId}
+        market_id = #{entity.marketId}
+        and user_type != 'owner'
+        and creator_id = #{entity.creatorId}
     </update>
 
 
@@ -105,9 +105,9 @@
         update app_market_user
         set user_type = #{entity.userType}
         where
-            market_id = #{entity.marketId}
-            and creator_id = #{entity.creatorId}
-            and deleted = 0
+        market_id = #{entity.marketId}
+        and creator_id = #{entity.creatorId}
+        and deleted = 0
     </update>
 
     <select id="getOwnerByRole"  resultType="java.lang.String">
@@ -125,9 +125,9 @@
         select user_type
         from app_market_user
         where
-            market_id = #{marketId}
-            and creator_id = #{userId}
-            and deleted = 0
+        market_id = #{marketId}
+        and creator_id = #{userId}
+        and deleted = 0
         limit 1
     </select>
 
@@ -158,7 +158,7 @@
 
 
 
-<!--    已经在团队内的不再查询, 已禁用的不再查询-->
+    <!--    已经在团队内的不再查询, 已禁用的不再查询-->
     <select id="getUserByPhone" resultType="com.iflytek.rpa.market.entity.MarketDto">
         select
         phone,
@@ -208,20 +208,20 @@
         update app_market_user
         set deleted = 1
         where
-            market_id = #{entity.marketId}
-            and creator_id = #{entity.creatorId}
-            and deleted = 0
+        market_id = #{entity.marketId}
+        and creator_id = #{entity.creatorId}
+        and deleted = 0
     </update>
 
 
     <update id="updateToOwner">
         update
-            app_market_user
+        app_market_user
         set user_type = 'owner'
         where
-            market_id = #{marketId}
-            and creator_id = #{newOwnerId}
-            and deleted = 0
+        market_id = #{marketId}
+        and creator_id = #{newOwnerId}
+        and deleted = 0
 
     </update>
 
@@ -230,23 +230,23 @@
         update app_market_user
         set deleted = 1
         where
-            market_id = #{marketId}
-            and deleted = 0
+        market_id = #{marketId}
+        and deleted = 0
     </update>
 
 
-     <select id="getMarketUserListForDeploy" resultType="java.lang.String">
+    <select id="getMarketUserListForDeploy" resultType="java.lang.String">
         select
-            creator_id
+        creator_id
         from
-            app_market_user
+        app_market_user
         where
-            deleted = 0
-            and market_id = #{marketId}
-            and creator_id in
-            <foreach collection="userIdList" item="userId" open="(" close=")" separator=",">
-                #{userId}
-            </foreach>
+        deleted = 0
+        and market_id = #{marketId}
+        and creator_id in
+        <foreach collection="userIdList" item="userId" open="(" close=")" separator=",">
+            #{userId}
+        </foreach>
     </select>
 
     <select id="getMarketUserInList" resultType="java.lang.String">
