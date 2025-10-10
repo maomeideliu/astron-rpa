@@ -483,6 +483,12 @@ public class AppMarketResourceServiceImpl extends ServiceImpl<AppMarketResourceD
         createModuleForObtainedVersion(obtainedRobotDesign, authorRobotVersion);
         // 配置参数
         createParamForCurrentVersion(obtainedRobotDesign, authorRobotVersion);
+        // 组件引用
+        addCompUseList(obtainedRobotDesign.getRobotId(),
+                0,
+                authorRobotVersion,
+                obtainedRobotDesign.getTenantId(),
+                obtainedRobotDesign.getCreatorId());
     }
 
     public void createModuleForObtainedVersion(RobotDesign obtainedRobotDesign, RobotVersion authorRobotVersion) {
