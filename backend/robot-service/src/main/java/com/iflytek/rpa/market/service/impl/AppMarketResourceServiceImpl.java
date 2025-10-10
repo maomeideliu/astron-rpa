@@ -484,7 +484,8 @@ public class AppMarketResourceServiceImpl extends ServiceImpl<AppMarketResourceD
         // 配置参数
         createParamForCurrentVersion(obtainedRobotDesign, authorRobotVersion);
         // 组件引用
-        addCompUseList(obtainedRobotDesign.getRobotId(),
+        addCompUseList(
+                obtainedRobotDesign.getRobotId(),
                 0,
                 authorRobotVersion,
                 obtainedRobotDesign.getTenantId(),
