@@ -115,9 +115,6 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
     private AppMarketVersionDao appMarketVersionDao;
 
     @Autowired
-    private HisBaseService hisBaseService;
-
-    @Autowired
     private AppApplicationService appApplicationService;
 
     private String filePathPrefix = "/api/resource/file/download?fileId=";
