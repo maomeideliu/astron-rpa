@@ -2,9 +2,9 @@ import copy
 from datetime import UTC, datetime
 
 from dateutil.relativedelta import relativedelta
-from rpaatomic import AtomicFormType, AtomicFormTypeMeta, DynamicsItem, TimeFormatType
-from rpaatomic.atomic import atomicMg
-from rpaatomic.types import Date
+from astronverse.actionlib import AtomicFormType, AtomicFormTypeMeta, DynamicsItem, TimeFormatType
+from astronverse.actionlib.atomic import atomicMg
+from astronverse.actionlib.types import Date
 
 from rpadataprocess import TimeChangeType, TimestampUnitType, TimeUnitType, TimeZoneType
 

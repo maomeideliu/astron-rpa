@@ -1,5 +1,7 @@
 package com.iflytek.rpa.robot.service.impl;
 
+import static com.iflytek.rpa.robot.constants.RobotConstant.*;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -104,16 +106,25 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
     @Autowired
     private CRequireDao cRequireDao;
 
-    @Autowired
-    private AppMarketResourceDao appMarketResourceDao;
+    private static List<ExeUpdateCheckVo> getExeUpdateCheckVos(List<RobotExecute> robotExecuteList) {
+        List<ExeUpdateCheckVo> resVoList = new ArrayList<>();
+        for (RobotExecute robotExecute : robotExecuteList) {
+            Integer updateStatus = 0;
+            if (robotExecute.getResourceStatus() != null) {
+                updateStatus = robotExecute.getResourceStatus().equals("toUpdate") ? 1 : 0;
+            } else {
+                updateStatus = 0;
+            }
+            ExeUpdateCheckVo exeUpdateCheckVo = new ExeUpdateCheckVo();
 
-    @Autowired
-    private AppMarketVersionDao appMarketVersionDao;
+            exeUpdateCheckVo.setAppId(robotExecute.getAppId());
+            exeUpdateCheckVo.setRobotId(robotExecute.getRobotId());
+            exeUpdateCheckVo.setUpdateStatus(updateStatus);
 
-    @Autowired
-    private AppApplicationService appApplicationService;
-
-    private String filePathPrefix = "/api/resource/file/download?fileId=";
+            resVoList.add(exeUpdateCheckVo);
+        }
+        return resVoList;
+    }
 
     @Override
     public AppResponse<?> executeList(ExecuteListDto queryDto) throws NoLoginException {
@@ -185,9 +196,6 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
             }
 
             setExecuteListRecord(ansRecords, recordRobotList);
-
-            // 开启上架审核后，填充使用权限
-            appApplicationService.packageUsePermission(ansRecords);
 
             ansPage.setSize(rePage.getSize());
             ansPage.setTotal(rePage.getTotal());

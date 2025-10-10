@@ -1,5 +1,7 @@
 package com.iflytek.rpa.base.service.impl;
 
+import static com.iflytek.rpa.base.constants.BaseConstant.*;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -93,7 +95,7 @@ public class CAtomMetaServiceImpl extends ServiceImpl<CAtomMetaDao, CAtomMeta> i
         if (atomListDto == null || CollectionUtils.isEmpty(atomListDto.getAtomList())) {
             return AppResponse.error(ErrorCodeEnum.E_PARAM_LOSE);
         }
-        if (atomListDto.getAtomList().size() > 500) {
+        if (atomListDto.getAtomList().size() > ATOM_LIST_MAX_SIZE) {
             return AppResponse.error(ErrorCodeEnum.E_SERVICE_NOT_SUPPORT, "一次最多查询500条");
         }
 
@@ -134,7 +136,7 @@ public class CAtomMetaServiceImpl extends ServiceImpl<CAtomMetaDao, CAtomMeta> i
             atomMeta.setCreatorId("1");
             atomMeta.setUpdaterId("1");
             atomMeta.setVersion("1");
-            atomMeta.setVersionNum(1000000);
+            atomMeta.setVersionNum(INIT_VERSION_NUM);
             atomMeta.setDeleted(0);
             cAtomMetaDao.insert(atomMeta);
         }
@@ -282,12 +284,12 @@ public class CAtomMetaServiceImpl extends ServiceImpl<CAtomMetaDao, CAtomMeta> i
         if (!CollectionUtils.isEmpty(insertOrUpdateAtomList)) {
             if ("insert".equals(saveWay)) {
                 // 批量插入
-                ListBatchUtil.process(insertOrUpdateAtomList, 50, this::saveBatch);
+                ListBatchUtil.process(insertOrUpdateAtomList, BATCH_SIZE, this::saveBatch);
 
                 // 根据本次查询的 key  和版本号 查询 数据库中是否有 复的数据，如果有重复的数据就记录本次的完整请求
                 checkDuplicateData(insertOrUpdateAtomList, atomNewMap, saveWay);
             } else if ("update".equals(saveWay)) {
-                ListBatchUtil.process(insertOrUpdateAtomList, 50, updateBatchList -> {
+                ListBatchUtil.process(insertOrUpdateAtomList, BATCH_SIZE, updateBatchList -> {
                     cAtomMetaDao.UpdateBatchByKeyAndVersion(updateBatchList);
                 });
             }
@@ -391,7 +393,7 @@ public class CAtomMetaServiceImpl extends ServiceImpl<CAtomMetaDao, CAtomMeta> i
             patch = Integer.parseInt(versionSplit[2]);
         }
         // 计算转换后的版本号
-        return major * 1_000_000 + minor * 1_000 + patch;
+        return major * MAJOR_SIZE + minor * MINOR_SIZE + patch;
     }
 
     private Boolean isAtomContentDifferent(Atomic newAtom, CAtomMeta oldAtomMeta) throws JsonProcessingException {

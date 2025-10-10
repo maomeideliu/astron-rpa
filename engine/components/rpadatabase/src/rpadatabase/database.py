@@ -1,7 +1,7 @@
 import platform
 import sys
 
-from rpaatomic.atomic import atomicMg
+from astronverse.actionlib.atomic import atomicMg
 
 from rpadatabase import DatabaseType
 from rpadatabase.core import IDatabaseCore

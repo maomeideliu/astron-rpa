@@ -1,6 +1,6 @@
 import toml
-from rpaatomic.atomic import atomicMg
-from rpaatomic.config import config
+from astronverse.actionlib.atomic import atomicMg
+from astronverse.actionlib.config import config
 from rpasystem.clipboard import Clipboard
 from rpasystem.compress import Compress
 from rpasystem.file import File

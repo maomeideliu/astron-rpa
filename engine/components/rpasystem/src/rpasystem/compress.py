@@ -1,7 +1,7 @@
 import os
 
-from rpaatomic import AtomicFormType, AtomicFormTypeMeta, AtomicLevel, DynamicsItem
-from rpaatomic.atomic import atomicMg
+from astronverse.actionlib import AtomicFormType, AtomicFormTypeMeta, AtomicLevel, DynamicsItem
+from astronverse.actionlib.atomic import atomicMg
 
 from rpasystem import *
 from rpasystem.core.compress_core import CompressCore

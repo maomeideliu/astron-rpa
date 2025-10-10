@@ -1,7 +1,6 @@
 package com.iflytek.rpa.base.service.impl;
 
-import static com.iflytek.rpa.base.constants.BaseConstant.PROCESS_TYPE_MODULE;
-import static com.iflytek.rpa.base.constants.BaseConstant.PROCESS_TYPE_PROCESS;
+import static com.iflytek.rpa.base.constants.BaseConstant.*;
 import static com.iflytek.rpa.robot.constants.RobotConstant.EDITING;
 
 import com.iflytek.rpa.base.annotation.RobotVersionAnnotation;
@@ -173,7 +172,7 @@ public class CProcessServiceImpl extends NextName implements CProcessService {
             int byteLength = newProcessContent.getBytes().length;
             // 将字节长度转换为兆字节（MB）
             double megabytes = byteLength / (1024.0 * 1024.0);
-            if (megabytes > 14) {
+            if (megabytes > MAX_PROCESS_SIZE) {
                 return AppResponse.error(ErrorCodeEnum.E_PARAM, "流程数据不能超过15M");
             }
         }

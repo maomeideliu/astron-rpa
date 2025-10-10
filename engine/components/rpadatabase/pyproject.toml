@@ -1,31 +1,23 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "rpadatabase"
-version = "1.0.4"
+version = "1.0.0"
 description = "rpadatabase."
+requires-python = ">=3.13"
 
-requires-python = ">=3.7"
 dependencies = [
-    "rpaatomic",
+    "astronverse-actionlib",
     "pymysql",
     "pyodbc",
     "cx_Oracle",
     "psycopg2"
 ]
 
-[[tool.uv.index]]
-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
-default = true
+[tool.uv.sources]
+astronverse-actionlib = {path = "../../shared/astronverse-actionlib", editable = true}
 
-[tool.setuptools]
-package-dir = {"rpadatabase" = "src/rpadatabase"}
-include-package-data = false
+[tool.hatch.build.targets.wheel]
+packages = ["src/rpadatabase"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["rpadatabase*"]
-
-
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

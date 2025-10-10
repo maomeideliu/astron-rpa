@@ -3,7 +3,7 @@ import re
 import subprocess
 
 import pyperclip
-from rpaframe.logger.logger import logger
+from astronverse.baseline.logger.logger import logger
 
 from rpasystem.core.clipboard_core import IClipBoardCore
 from rpasystem.error import *

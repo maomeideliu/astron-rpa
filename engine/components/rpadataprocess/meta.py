@@ -1,6 +1,6 @@
 import toml
-from rpaatomic.atomic import atomicMg
-from rpaatomic.config import config
+from astronverse.actionlib.atomic import atomicMg
+from astronverse.actionlib.config import config
 from rpadataprocess.data import DataProcess
 from rpadataprocess.dataconvert import DataConvertProcess
 from rpadataprocess.dict import DictProcess

@@ -2,8 +2,8 @@ import math
 import re
 from typing import Any
 
-from rpaatomic import DynamicsItem
-from rpaatomic.atomic import atomicMg
+from astronverse.actionlib import DynamicsItem
+from astronverse.actionlib.atomic import atomicMg
 
 from rpadataprocess import AddSubType, MathOperatorType, MathRoundType, NumberType
 from rpadataprocess.error import *

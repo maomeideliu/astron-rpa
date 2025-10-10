@@ -2,7 +2,7 @@ import ast
 import json
 from typing import Any
 
-from rpaatomic.atomic import atomicMg
+from astronverse.actionlib.atomic import atomicMg
 
 from rpadataprocess import JSONConvertType, StringConvertType
 

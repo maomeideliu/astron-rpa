@@ -2,8 +2,8 @@ import math
 import re
 from copy import deepcopy
 
-from rpaatomic import DynamicsItem
-from rpaatomic.atomic import atomicMg
+from astronverse.actionlib import DynamicsItem
+from astronverse.actionlib.atomic import atomicMg
 
 from rpadataprocess import (
     CaseChangeType,

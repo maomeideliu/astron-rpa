@@ -1,14 +1,14 @@
 import time
 
 import pyautogui
-from locator import smooth_move
-from locator.locator import locator
-from rpaatomic import DynamicsItem
-from rpaatomic.atomic import atomicMg
-from rpaatomic.types import WebPick
+from astronverse.locator import smooth_move
+from astronverse.locator.locator import locator
+from astronverse.actionlib import DynamicsItem
+from astronverse.actionlib.atomic import atomicMg
+from astronverse.actionlib.types import WebPick
 from rpabrowser.browser import Browser
 from rpabrowser.browser_element import BrowserElement
-from rpaframe.logger.logger import logger
+from astronverse.baseline.logger.logger import logger
 
 from rpaverifycode import HintPosition, PictureCodeType
 from rpaverifycode.core import VerifyCodeCore

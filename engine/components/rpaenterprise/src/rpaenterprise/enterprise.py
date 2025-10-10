@@ -3,10 +3,10 @@ import os
 import urllib.parse
 
 import requests
-from rpaatomic import AtomicFormType, AtomicFormTypeMeta
-from rpaatomic.atomic import atomicMg
-from rpaatomic.types import PATH, Ciphertext
-from rpaframe.logger.logger import logger
+from astronverse.actionlib import AtomicFormType, AtomicFormTypeMeta
+from astronverse.actionlib.atomic import atomicMg
+from astronverse.actionlib.types import PATH, Ciphertext
+from astronverse.baseline.logger.logger import logger
 
 from rpaenterprise.error import *
 

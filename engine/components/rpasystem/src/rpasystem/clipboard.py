@@ -1,8 +1,8 @@
 import os
 import sys
 
-from rpaatomic import AtomicFormType, AtomicFormTypeMeta, DynamicsItem
-from rpaatomic.atomic import atomicMg
+from astronverse.actionlib import AtomicFormType, AtomicFormTypeMeta, DynamicsItem
+from astronverse.actionlib.atomic import atomicMg
 
 from rpasystem import *
 from rpasystem.core.clipboard_core import IClipBoardCore

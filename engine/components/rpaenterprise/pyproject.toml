@@ -1,29 +1,20 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "rpaenterprise"
-version = "1.0.8"
+version = "1.0.0"
 description = "rpaenterprise."
+requires-python = ">=3.13"
 
-requires-python = ">=3.7"
 dependencies = [
-    "rpaatomic",
-    "rpaframe",
+    "astronverse-actionlib",
     "requests"
 ]
 
-[[tool.uv.index]]
-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
-default = true
+[tool.uv.sources]
+astronverse-actionlib = {path = "../../shared/astronverse-actionlib", editable = true}
 
-[tool.setuptools]
-package-dir = {"rpaenterprise" = "src/rpaenterprise"}
-include-package-data = false
+[tool.hatch.build.targets.wheel]
+packages = ["src/rpaenterprise"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["rpaenterprise*"]
-
-
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

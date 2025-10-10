@@ -1,33 +1,26 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "rpaverifycode"
-version = "1.0.11"
+version = "1.0.0"
 description = "rpaverifycode."
+requires-python = ">=3.13"
 
-requires-python = ">=3.7"
 dependencies = [
-    "rpaatomic",
-    "rpaframe",
+    "astronverse-browser",
+    "astronverse-actionlib",
+    "astronverse-locator",
     "pyautogui",
-    "locator",
     "pytweening",
-    "requests",
-    "rpabrowser"
+    "requests"
 ]
 
-[[tool.uv.index]]
-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
-default = true
+[tool.uv.sources]
+astronverse-browser = {path = "../../components/astronverse-browser", editable = true}
+astronverse-actionlib = {path = "../../shared/astronverse-actionlib", editable = true}
+astronverse-locator = {path = "../../shared/astronverse-locator", editable = true}
 
-[tool.setuptools]
-package-dir = {"rpaverifycode" = "src/rpaverifycode"}
-include-package-data = false
+[tool.hatch.build.targets.wheel]
+packages = ["src/rpaverifycode"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["rpaverifycode*"]
-
-
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

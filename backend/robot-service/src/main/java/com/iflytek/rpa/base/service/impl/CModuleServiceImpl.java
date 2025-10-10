@@ -1,5 +1,6 @@
 package com.iflytek.rpa.base.service.impl;
 
+import static com.iflytek.rpa.base.constants.BaseConstant.CONTENT_MAX_LENGTH;
 import static com.iflytek.rpa.robot.constants.RobotConstant.EDITING;
 
 import com.iflytek.rpa.base.annotation.RobotVersionAnnotation;
@@ -36,7 +37,6 @@ import org.springframework.util.CollectionUtils;
 @Service("CModuleService")
 public class CModuleServiceImpl extends NextName implements CModuleService {
 
-    public final int CONTENT_MAX_LENGTH = 10000000; // 实际数据库中medium text 支持的最大长度是 16777215
     // 新生成的初始代码
     public final String initContent =
             "from typing import Any\n" + "from rpahelper.helper import Helper, print, logger\n" + "\n"
