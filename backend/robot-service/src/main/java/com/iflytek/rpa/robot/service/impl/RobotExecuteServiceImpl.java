@@ -106,26 +106,6 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
     @Autowired
     private CRequireDao cRequireDao;
 
-    private static List<ExeUpdateCheckVo> getExeUpdateCheckVos(List<RobotExecute> robotExecuteList) {
-        List<ExeUpdateCheckVo> resVoList = new ArrayList<>();
-        for (RobotExecute robotExecute : robotExecuteList) {
-            Integer updateStatus = 0;
-            if (robotExecute.getResourceStatus() != null) {
-                updateStatus = robotExecute.getResourceStatus().equals("toUpdate") ? 1 : 0;
-            } else {
-                updateStatus = 0;
-            }
-            ExeUpdateCheckVo exeUpdateCheckVo = new ExeUpdateCheckVo();
-
-            exeUpdateCheckVo.setAppId(robotExecute.getAppId());
-            exeUpdateCheckVo.setRobotId(robotExecute.getRobotId());
-            exeUpdateCheckVo.setUpdateStatus(updateStatus);
-
-            resVoList.add(exeUpdateCheckVo);
-        }
-        return resVoList;
-    }
-
     @Override
     public AppResponse<?> executeList(ExecuteListDto queryDto) throws NoLoginException {
 
@@ -550,9 +530,9 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
         resVo.setUseDescription(useDescription);
         resVo.setIntroduction(introduction);
         resVo.setFileName(fileName);
-        resVo.setFilePath(filePathPrefix + fileId);
+        resVo.setFilePath(FILE_PATH_PREFIX + fileId);
         resVo.setVideoName(videoName);
-        resVo.setVideoPath(StringUtils.isEmpty(videoId) ? null : (filePathPrefix + videoId));
+        resVo.setVideoPath(StringUtils.isEmpty(videoId) ? null : (FILE_PATH_PREFIX + videoId));
     }
 
     private void taskRobotDeleteAfter(List<String> taskIdList) throws Exception {
@@ -704,14 +684,14 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
                         .eq(RobotVersion::getDeleted, 0)
                         .set(RobotVersion::getCreatorId, newOwnerId));
         // todo 转移市场中的应用和版本
-        appMarketResourceDao.update(
+        appResourceDao.update(
                 null,
                 new LambdaUpdateWrapper<AppMarketResource>()
                         .in(AppMarketResource::getRobotId, robotIdList)
                         .eq(AppMarketResource::getDeleted, 0)
                         .set(AppMarketResource::getCreatorId, newOwnerId));
         // 获取appId列表
-        List<String> appIdList = appMarketResourceDao
+        List<String> appIdList = appResourceDao
                 .selectList(new LambdaQueryWrapper<AppMarketResource>()
                         .in(AppMarketResource::getRobotId, robotIdList)
                         .eq(AppMarketResource::getDeleted, 0))
@@ -723,7 +703,7 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
 
         if (!CollectionUtils.isEmpty(appIdList)) {
             // 转移市场中的应用和版本
-            appMarketVersionDao.update(
+            appVersionDao.update(
                     null,
                     new LambdaUpdateWrapper<AppMarketVersion>()
                             .in(AppMarketVersion::getAppId, appIdList)
