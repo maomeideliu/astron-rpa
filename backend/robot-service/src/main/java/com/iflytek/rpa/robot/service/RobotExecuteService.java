@@ -33,8 +33,6 @@ public interface RobotExecuteService {
 
     AppResponse<List<RobotExecuteByNameNDeptVo>> getRobotExecuteList(@RequestBody RobotExecuteByNameNDeptDto queryDto) throws NoLoginException;
 
-    AppResponse<List<RobotNameDto>> getRobotNameListByName(String robotName, String deptId);
-
     AppResponse<?> transferRobot(TransferRobotDto transferRobotDto) throws Exception;
 
 }

@@ -658,17 +658,6 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
         return AppResponse.success(resVoList);
     }
 
-
-    @Override
-    public AppResponse<List<RobotNameDto>> getRobotNameListByName(String robotName, String deptId) {
-        BaseDto baseDto = new BaseDto();
-        baseDto.setDeptId(deptId);
-        hisBaseService.setDataAuth(baseDto);
-        List<RobotNameDto> robotList = robotExecuteDao.getRobotNameListByName(robotName, baseDto);
-        return AppResponse.success(robotList);
-    }
-
-
     @Override
     @Transactional(rollbackFor = Exception.class)
     // @AuditLog(moduleName = "机器人管理", typeName = "转移机器人")
