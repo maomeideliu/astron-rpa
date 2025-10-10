@@ -2,6 +2,8 @@ package com.iflytek.rpa.utils;
 
 import com.iflytek.rpa.auth.entity.CustomUserDetails;
 import com.iflytek.rpa.starter.utils.StringUtils;
+import java.util.Objects;
+import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.casbin.casdoor.entity.Group;
 import org.casbin.casdoor.entity.User;
@@ -10,9 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
-import java.util.Objects;
 
 /**
  * @desc: 租户工具类

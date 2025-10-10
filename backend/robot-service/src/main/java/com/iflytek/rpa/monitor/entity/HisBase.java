@@ -2,11 +2,10 @@ package com.iflytek.rpa.monitor.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Data;
-
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+import lombok.Data;
 
 /**
  * 全部机器人和全部终端趋势表(HisCloudBase)实体类
@@ -17,7 +16,7 @@ import java.util.Date;
 @Data
 public class HisBase implements Serializable {
     private static final long serialVersionUID = -59852027779143864L;
-    
+
     private Long id;
     /**
      * 租户id
@@ -68,17 +67,14 @@ public class HisBase implements Serializable {
      */
     private Long laborSave = 0L;
 
-
     @TableField(exist = false)
     private BigDecimal laborSaveHour = new BigDecimal(0);
 
-
-
-    public Long getLaborSaveData(){
-//        if(executeTimeTotal != null && executeTimeTotal>0){
-//            return (long)Math.ceil((double)executeTimeTotal/3600);
-//        }
-//        return 0L;
+    public Long getLaborSaveData() {
+        //        if(executeTimeTotal != null && executeTimeTotal>0){
+        //            return (long)Math.ceil((double)executeTimeTotal/3600);
+        //        }
+        //        return 0L;
         return executeTimeTotal;
     }
     /**
@@ -117,7 +113,6 @@ public class HisBase implements Serializable {
     @TableField(exist = false)
     private BigDecimal terminalExecuteTimeHour = new BigDecimal(0);
 
-
     /**
      * 终端平均执行时长，单位秒
      */
@@ -129,34 +124,38 @@ public class HisBase implements Serializable {
     @TableField(exist = false)
     private Long terminalNumToday = 0L;
 
-    public BigDecimal getExecuteSuccessRateEverydayData(){
-        Long executeNumTotal = getLongValue(executeAbortEveryday) + getLongValue(executeFailEveryday) + getLongValue(executeSuccessEveryday);
-        return executeNumTotal==0 ? null:
-                (executeSuccessEveryday == null ? new BigDecimal(0):
-                        new BigDecimal(((double)executeSuccessEveryday * 100)/executeNumTotal)
-                );
+    public BigDecimal getExecuteSuccessRateEverydayData() {
+        Long executeNumTotal = getLongValue(executeAbortEveryday)
+                + getLongValue(executeFailEveryday)
+                + getLongValue(executeSuccessEveryday);
+        return executeNumTotal == 0
+                ? null
+                : (executeSuccessEveryday == null
+                        ? new BigDecimal(0)
+                        : new BigDecimal(((double) executeSuccessEveryday * 100) / executeNumTotal));
     }
 
-    public Long getLongValue(Long value){
-        return value == null?0:value;
+    public Long getLongValue(Long value) {
+        return value == null ? 0 : value;
     }
 
     public BigDecimal getSuccessRateData() {
-        if (executeTotal==null || executeTotal==0){
+        if (executeTotal == null || executeTotal == 0) {
             return null;
         }
-        if(executeSuccess == null){
+        if (executeSuccess == null) {
             new BigDecimal(0);
         }
-        return new BigDecimal(((double)executeSuccess * 100)/executeTotal);
+        return new BigDecimal(((double) executeSuccess * 100) / executeTotal);
     }
 
     public Long getAvgTerminalTimeData() {
-        return (terminal==null || terminal==0) ? null:
-                (terminalExecuteTime == null ? 0L:(terminalExecuteTime/terminal));
+        return (terminal == null || terminal == 0)
+                ? null
+                : (terminalExecuteTime == null ? 0L : (terminalExecuteTime / terminal));
     }
 
-    public void setTotalNull(){
+    public void setTotalNull() {
         this.setExecuteSuccessRate(null);
         this.setExecuteSuccess(0L);
         this.setExecuteFail(0L);
@@ -165,7 +164,7 @@ public class HisBase implements Serializable {
         this.setExecuteTotal(0L);
     }
 
-    public void setEveryDayNull(){
+    public void setEveryDayNull() {
         this.setExecuteFailEveryday(0L);
         this.setExecuteSuccessEveryday(0L);
         this.setExecuteAbortEveryday(0L);
@@ -173,4 +172,3 @@ public class HisBase implements Serializable {
         this.setTerminalTimeAvg(0L);
     }
 }
-

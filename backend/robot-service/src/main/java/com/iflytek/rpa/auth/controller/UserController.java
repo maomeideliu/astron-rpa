@@ -6,6 +6,7 @@ import com.iflytek.rpa.auth.service.AuthExtendService;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.utils.TenantUtils;
 import com.iflytek.rpa.utils.UserUtils;
+import java.util.List;
 import org.casbin.casdoor.entity.Group;
 import org.casbin.casdoor.entity.Permission;
 import org.casbin.casdoor.entity.User;
@@ -15,13 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import javax.validation.constraints.NotEmpty;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.List;
 
 /**
  * @desc: 认证用户控制器
@@ -37,7 +32,10 @@ public class UserController {
     private final AuthExtendService authExtendService;
     private final String redirectUrl;
 
-    public UserController(AuthService authService, AuthExtendService authExtendService, @Value("${casdoor.redirect-url}") String redirectUrl) {
+    public UserController(
+            AuthService authService,
+            AuthExtendService authExtendService,
+            @Value("${casdoor.redirect-url}") String redirectUrl) {
         this.authService = authService;
         this.authExtendService = authExtendService;
         this.redirectUrl = redirectUrl;
@@ -201,5 +199,4 @@ public class UserController {
             return Result.failure("获取群组信息失败: " + e.getMessage());
         }
     }
-
 }

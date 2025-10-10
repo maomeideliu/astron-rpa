@@ -7,9 +7,6 @@ public class MonitorConstant {
      */
     public static final String REPORT_TYPE_ROBOT = "robot";
 
-
-
-
     /*=========================统计类型========================================*/
     /**
      * 统计类型-机器人维度
@@ -25,7 +22,6 @@ public class MonitorConstant {
      * 统计类型-终端维度
      */
     public static final String AUDIT_OBJECT_TYPE_TERMINAL = "terminal";
-
 
     /*=============================数据权限=============================*/
 
@@ -49,7 +45,6 @@ public class MonitorConstant {
      */
     public static final String DATA_AUTH_TYPE_CHECKED_DEPT = "checked_dept";
 
-
     /*===========================数据统计进度=======================*/
 
     /**
@@ -62,7 +57,6 @@ public class MonitorConstant {
      */
     public static final String AUDIT_STATUS_COUNTING = "counting";
 
-
     /**
      * 中断
      */
@@ -72,5 +66,4 @@ public class MonitorConstant {
      * 完成
      */
     public static final String AUDIT_STATUS_COMPLETED = "completed";
-
 }

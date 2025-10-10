@@ -1,11 +1,10 @@
 package com.iflytek.rpa.monitor.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Data;
-
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+import lombok.Data;
 
 /**
  * 单个机器人趋势表(HisCloudRobot)实体类
@@ -16,7 +15,7 @@ import java.util.Date;
 @Data
 public class HisRobot implements Serializable {
     private static final long serialVersionUID = 512058420442741592L;
-    
+
     private Long id;
     /**
      * 租户id
@@ -72,11 +71,21 @@ public class HisRobot implements Serializable {
 
     private String robotId;
 
-    public HisRobot(){}
-    public HisRobot(String robotId, String tenantId, String deptIdPath, String deptName,
-                    Long executeNumTotal, Long executeSuccess, Long executeFail,
-                    Long executeAbort, double executeSuccessRate,
-                    Date countTime, Date updateTime, Long executeTime){
+    public HisRobot() {}
+
+    public HisRobot(
+            String robotId,
+            String tenantId,
+            String deptIdPath,
+            String deptName,
+            Long executeNumTotal,
+            Long executeSuccess,
+            Long executeFail,
+            Long executeAbort,
+            double executeSuccessRate,
+            Date countTime,
+            Date updateTime,
+            Long executeTime) {
         this.robotId = robotId;
         this.tenantId = tenantId;
         this.deptIdPath = deptIdPath;
@@ -89,16 +98,12 @@ public class HisRobot implements Serializable {
         this.countTime = countTime;
         this.updateTime = updateTime;
         this.deleted = 0;
-
     }
-
 
     public BigDecimal getSuccessRateData() {
-        if(executeNumTotal==null || executeNumTotal==0 || executeSuccess == null){
+        if (executeNumTotal == null || executeNumTotal == 0 || executeSuccess == null) {
             return null;
         }
-        return new BigDecimal(((double)executeSuccess * 100)/executeNumTotal);
+        return new BigDecimal(((double) executeSuccess * 100) / executeNumTotal);
     }
-
 }
-

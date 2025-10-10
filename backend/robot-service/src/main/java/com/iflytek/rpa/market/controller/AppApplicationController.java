@@ -9,12 +9,11 @@ import com.iflytek.rpa.market.service.AppApplicationService;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
 import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
+import java.io.IOException;
+import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
-
-import javax.validation.Valid;
-import java.io.IOException;
 
 /**
  * 上架、使用申请管理
@@ -26,7 +25,6 @@ public class AppApplicationController {
     @Autowired
     private AppApplicationService appApplicationService;
 
-
     /**
      * 管理端-上架申请列表
      *
@@ -35,7 +33,8 @@ public class AppApplicationController {
      * @throws Exception
      */
     @PostMapping("/release-page-list")
-    public AppResponse<IPage<ReleasePageListVo>> getReleasePageList(@RequestBody ReleasePageListDto queryDto) throws Exception {
+    public AppResponse<IPage<ReleasePageListVo>> getReleasePageList(@RequestBody ReleasePageListDto queryDto)
+            throws Exception {
         return appApplicationService.getReleasePageList(queryDto);
     }
 
@@ -79,28 +78,29 @@ public class AppApplicationController {
      * 上架、使用申请审核-驳回、批准
      */
     @PostMapping("/audit-status")
-    public AppResponse<String> auditApplication(@Valid @RequestBody AuditApplicationDto auditApplicationDto) throws Exception {
+    public AppResponse<String> auditApplication(@Valid @RequestBody AuditApplicationDto auditApplicationDto)
+            throws Exception {
 
         return appApplicationService.auditApplication(auditApplicationDto);
     }
-
 
     /**
      * 上架申请-变更
      */
     @PostMapping("/change-status")
-    public AppResponse<String> changeAudit(@Valid @RequestBody ChangeAuditDto changeAuditDto) throws NoLoginException, IOException {
+    public AppResponse<String> changeAudit(@Valid @RequestBody ChangeAuditDto changeAuditDto)
+            throws NoLoginException, IOException {
 
         return appApplicationService.changeAudit(changeAuditDto);
     }
-
 
     /**
      * 开启、关闭审核
      */
     @PostMapping("/enable-audit")
-    public AppResponse<String> enableAudit(@RequestParam("status") String status, 
-                                         @RequestParam(value = "reason", required = false) String reason) throws NoLoginException {
+    public AppResponse<String> enableAudit(
+            @RequestParam("status") String status, @RequestParam(value = "reason", required = false) String reason)
+            throws NoLoginException {
         return appApplicationService.enableAudit(status, reason);
     }
 
@@ -120,7 +120,8 @@ public class AppApplicationController {
      * @throws Exception
      */
     @PostMapping("/my-application-page-list")
-    public AppResponse<IPage<MyApplicationPageListVo>> getMyApplicationPageList(@RequestBody MyApplicationPageListDto queryDto) throws Exception {
+    public AppResponse<IPage<MyApplicationPageListVo>> getMyApplicationPageList(
+            @RequestBody MyApplicationPageListDto queryDto) throws Exception {
         return appApplicationService.getMyApplicationPageList(queryDto);
     }
 
@@ -161,14 +162,13 @@ public class AppApplicationController {
      * 客户端-提交上架申请
      */
     @PostMapping("/submit-release-application")
-    public AppResponse<String> submitReleaseApplication(@Valid @RequestBody ReleaseApplicationDto applicationDto) throws Exception {
-        if(CollectionUtils.isEmpty(applicationDto.getMarketIdList())){
-            return AppResponse.error(ErrorCodeEnum.E_PARAM,"市场id不能为空");
+    public AppResponse<String> submitReleaseApplication(@Valid @RequestBody ReleaseApplicationDto applicationDto)
+            throws Exception {
+        if (CollectionUtils.isEmpty(applicationDto.getMarketIdList())) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM, "市场id不能为空");
         }
         return appApplicationService.submitReleaseApplication(applicationDto);
     }
-
-
 
     /**
      * 客户端-发版后，提交上架申请前，查询是否需要上架审核
@@ -188,22 +188,20 @@ public class AppApplicationController {
      */
     @PostMapping("/submit-after-publish")
     public AppResponse<String> submitAfterPublish(@Valid @RequestBody SubmitAfterPublishDto dto) throws Exception {
-        if(CollectionUtils.isEmpty(dto.getMarketIdList())){
-            return AppResponse.error(ErrorCodeEnum.E_PARAM,"市场id不能为空");
+        if (CollectionUtils.isEmpty(dto.getMarketIdList())) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM, "市场id不能为空");
         }
         return appApplicationService.submitAfterPublish(dto);
     }
 
-
     /**
      * 卓越中心-部署前权限检查
      */
-//    @PostMapping("/excellence-deploy-check")
-//    public AppResponse<?> excellenceDeployCheck(@Valid @RequestBody ExcellenceDeployDto deployDto) throws Exception {
-//        return appApplicationService.excellenceDeployCheck(deployDto);
-//    }
-
-
+    //    @PostMapping("/excellence-deploy-check")
+    //    public AppResponse<?> excellenceDeployCheck(@Valid @RequestBody ExcellenceDeployDto deployDto) throws
+    // Exception {
+    //        return appApplicationService.excellenceDeployCheck(deployDto);
+    //    }
 
     /**
      * 客户端-使用前权限检查

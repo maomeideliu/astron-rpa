@@ -33,10 +33,11 @@ public interface RobotExecuteRecordDao extends BaseMapper<RobotExecuteRecord> {
     RobotExecutionData robotOverviewWithoutVersion(
             @Param("tenantId") String tenantId, @Param("robotId") String robotId, @Param("countTime") Date countTime);
 
-    RobotMonitorDto robotOverview(@Param("tenantId")  String tenantId,
-                                  @Param("robotId")  String robotId,
-                                  @Param("countTime") Date countTime,
-                                  @Param("robotVersion") Integer robotVersion);
+    RobotMonitorDto robotOverview(
+            @Param("tenantId") String tenantId,
+            @Param("robotId") String robotId,
+            @Param("countTime") Date countTime,
+            @Param("robotVersion") Integer robotVersion);
 
     String getExecuteLog(ExecuteRecordDto recordDto);
 

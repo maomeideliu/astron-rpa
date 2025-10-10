@@ -15,11 +15,13 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface AppApplicationDao extends BaseMapper<AppApplication> {
 
-    IPage<ReleasePageListVo> getReleasePageList(IPage<ReleasePageListVo> pageConfig, @Param("entity") ReleasePageListDto queryDto);
+    IPage<ReleasePageListVo> getReleasePageList(
+            IPage<ReleasePageListVo> pageConfig, @Param("entity") ReleasePageListDto queryDto);
 
     IPage<UsePageListVo> getUsePageList(IPage<UsePageListVo> pageConfig, @Param("entity") UsePageListDto queryDto);
 
-    IPage<MyApplicationPageListVo> getMyApplicationPageList(IPage<MyApplicationPageListVo> pageConfig, @Param("entity") MyApplicationPageListDto queryDto);
+    IPage<MyApplicationPageListVo> getMyApplicationPageList(
+            IPage<MyApplicationPageListVo> pageConfig, @Param("entity") MyApplicationPageListDto queryDto);
 
     /**
      * 自动审批未审核的上架申请
@@ -31,5 +33,5 @@ public interface AppApplicationDao extends BaseMapper<AppApplication> {
      */
     int deleteAuditRecords(@Param("tenantId") String tenantId, @Param("operator") String operator);
 
-    AppApplication getApplicationByObtainedAppId(String appId,String tenantId);
+    AppApplication getApplicationByObtainedAppId(String appId, String tenantId);
 }

@@ -1,8 +1,7 @@
 package com.iflytek.rpa.market.entity;
 
-import lombok.Data;
-
 import java.util.List;
+import lombok.Data;
 
 /**
  * @author mjren
@@ -13,7 +12,4 @@ import java.util.List;
 public class MarketInfo {
 
     private List<String> marketIdList;
-
-
-
 }

@@ -7,7 +7,6 @@ import com.iflytek.rpa.notify.entity.dto.NotifyListDto;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
 
-
 public interface NotifySendService extends IService<NotifySend> {
     AppResponse<?> createNotify(CreateNotifyDto createNotifyDto) throws NoLoginException;
 

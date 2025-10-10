@@ -1,8 +1,7 @@
 package com.iflytek.rpa.monitor.entity;
 
-import lombok.Data;
-
 import java.io.Serializable;
+import lombok.Data;
 
 /**
  * (DeptUser)实体类
@@ -20,8 +19,4 @@ public class DeptUser implements Serializable {
     private String userId;
 
     private String deptIdPath;
-
-
-
 }
-

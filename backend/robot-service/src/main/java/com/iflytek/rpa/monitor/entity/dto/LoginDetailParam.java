@@ -15,8 +15,9 @@ public class LoginDetailParam {
     private String userNameLast; // 最后登录用户名
     private String action; // 操作类型
 
-    public LoginDetailParam(){}
-    public LoginDetailParam(String userId, String action, String terminalMac, String terminalIp, String terminalName){
+    public LoginDetailParam() {}
+
+    public LoginDetailParam(String userId, String action, String terminalMac, String terminalIp, String terminalName) {
         this.userId = userId;
         this.action = action;
         this.terminalMac = terminalMac;

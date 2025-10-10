@@ -17,5 +17,4 @@ public interface StatisticsService {
     void statisticsBaseOnDept(Date date);
 
     void statisticsTerminalData(Date date);
-
 }

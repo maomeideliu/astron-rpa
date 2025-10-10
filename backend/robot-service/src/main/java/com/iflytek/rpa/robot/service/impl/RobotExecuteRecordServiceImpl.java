@@ -20,7 +20,6 @@ import com.iflytek.rpa.starter.utils.response.AppResponse;
 import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
 import com.iflytek.rpa.task.dao.ScheduleTaskDao;
 import com.iflytek.rpa.utils.*;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
@@ -156,14 +155,23 @@ public class RobotExecuteRecordServiceImpl extends ServiceImpl<RobotExecuteRecor
             return AppResponse.error(ErrorCodeEnum.E_SQL, "租户信息获取失败");
         }
         String robotId = robotMonitorDto.getRobotId();
-        //今天的和历史的都需要实时统计，因为表里面没存累计历史数据，只存了每日历史数据
+        // 今天的和历史的都需要实时统计，因为表里面没存累计历史数据，只存了每日历史数据
         Date countTime = DateUtils.getEndOfDay(robotMonitorDto.getDeadline());
-        RobotMonitorDto robotMonitorData = robotExecuteRecordDao.robotOverview(tenantId, robotId, countTime, robotMonitorDto.getVersion());
-        robotMonitorData.setExecuteSuccessRate(NumberUtils.getRate(new BigDecimal(robotMonitorData.getExecuteSuccess()), new BigDecimal(robotMonitorData.getExecuteTotal())));
-        robotMonitorData.setExecuteFailRate(NumberUtils.getRate(new BigDecimal(robotMonitorData.getExecuteFail()), new BigDecimal(robotMonitorData.getExecuteTotal())));
-        robotMonitorData.setExecuteAbortRate(NumberUtils.getRate(new BigDecimal(robotMonitorData.getExecuteAbort()), new BigDecimal(robotMonitorData.getExecuteTotal())));
-        robotMonitorData.setExecuteRunningRate(NumberUtils.getRate(new BigDecimal(robotMonitorData.getExecuteRunning()), new BigDecimal(robotMonitorData.getExecuteTotal())));
-        return AppResponse.success(hisDataEnumService.getOverViewData("robotOverview", robotMonitorData, RobotMonitorDto.class));
+        RobotMonitorDto robotMonitorData =
+                robotExecuteRecordDao.robotOverview(tenantId, robotId, countTime, robotMonitorDto.getVersion());
+        robotMonitorData.setExecuteSuccessRate(NumberUtils.getRate(
+                new BigDecimal(robotMonitorData.getExecuteSuccess()),
+                new BigDecimal(robotMonitorData.getExecuteTotal())));
+        robotMonitorData.setExecuteFailRate(NumberUtils.getRate(
+                new BigDecimal(robotMonitorData.getExecuteFail()), new BigDecimal(robotMonitorData.getExecuteTotal())));
+        robotMonitorData.setExecuteAbortRate(NumberUtils.getRate(
+                new BigDecimal(robotMonitorData.getExecuteAbort()),
+                new BigDecimal(robotMonitorData.getExecuteTotal())));
+        robotMonitorData.setExecuteRunningRate(NumberUtils.getRate(
+                new BigDecimal(robotMonitorData.getExecuteRunning()),
+                new BigDecimal(robotMonitorData.getExecuteTotal())));
+        return AppResponse.success(
+                hisDataEnumService.getOverViewData("robotOverview", robotMonitorData, RobotMonitorDto.class));
     }
 
     @Override

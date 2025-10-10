@@ -1,13 +1,11 @@
 package com.iflytek.rpa.monitor.dao;
 
-
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.iflytek.rpa.monitor.entity.HisBase;
 import com.iflytek.rpa.monitor.entity.dto.BaseDto;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 /**
  * 全部机器人和全部终端趋势表(HisCloudBase)表数据库访问层
@@ -17,7 +15,6 @@ import java.util.List;
  */
 @Mapper
 public interface HisBaseDao extends BaseMapper<HisBase> {
-
 
     Integer insertBatch(@Param("entities") List<HisBase> hisBaseList);
 
@@ -34,9 +31,4 @@ public interface HisBaseDao extends BaseMapper<HisBase> {
     List<HisBase> userNumHistory(BaseDto baseDto);
 
     List<HisBase> terminalNumHistory(BaseDto baseDto);
-
-
-
-
 }
-

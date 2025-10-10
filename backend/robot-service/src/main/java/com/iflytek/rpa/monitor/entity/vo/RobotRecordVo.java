@@ -13,6 +13,7 @@ public class RobotRecordVo {
 
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     String createTime; // 创建日期
+
     Long executeTotal; // 统计区间执行次数
     Long executeSuccess; // 统计区间执行成功次数
     Long executeTimeTotal; // 统计区间执行时长（小时）

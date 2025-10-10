@@ -24,5 +24,4 @@ public class RobotRecordExcelVo {
 
     @Excel(name = "统计区间执行时长（小时）", orderNum = "6", width = 25)
     Long executeTimeTotal; // 统计区间执行时长（小时）
-
 }

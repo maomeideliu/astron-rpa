@@ -11,13 +11,12 @@ import com.iflytek.rpa.robot.entity.RobotExecute;
 import com.iflytek.rpa.robot.entity.dto.*;
 import com.iflytek.rpa.robot.entity.vo.RobotExecuteByNameNDeptVo;
 import com.iflytek.rpa.utils.PrePage;
+import java.util.List;
+import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.casbin.casdoor.entity.User;
-
-import java.util.List;
-import java.util.Set;
 
 /**
  * 云端机器人表(RobotExecute)表数据库访问层
@@ -28,13 +27,15 @@ import java.util.Set;
 @Mapper
 public interface RobotExecuteDao extends BaseMapper<RobotExecute> {
 
-    List<User> getUnDeployedUserList(@Param("entity") QueryUnDeployedUserDto queryUnDeployedUserDto,
-                                     @Param("tenantId") String tenantId,
-                                     @Param("databaseName") String databaseName);
+    List<User> getUnDeployedUserList(
+            @Param("entity") QueryUnDeployedUserDto queryUnDeployedUserDto,
+            @Param("tenantId") String tenantId,
+            @Param("databaseName") String databaseName);
 
-    Integer updateResourceStatusByMarketId(@Param("resourceStatus") String resourceStatus,
-                                           @Param("userId") String userId,
-                                           @Param("marketId") String marketId);
+    Integer updateResourceStatusByMarketId(
+            @Param("resourceStatus") String resourceStatus,
+            @Param("userId") String userId,
+            @Param("marketId") String marketId);
 
     Integer countObtainedExecute(MarketResourceDto marketResourceDto);
 
@@ -50,17 +51,13 @@ public interface RobotExecuteDao extends BaseMapper<RobotExecute> {
 
     Integer insertObtainedRobot(RobotExecute robotExecute);
 
+    RobotExecute queryByRobotId(
+            @Param("robotId") String robotId, @Param("userId") String userId, @Param("tenantId") String tenantId);
 
-    RobotExecute queryByRobotId(@Param("robotId") String robotId,
-                                @Param("userId") String userId,
-                                @Param("tenantId") String tenantId);
-
-    Integer updateParamToNUll(@Param("robotId") String robotId,
-                              @Param("userId") String userId,
-                              @Param("tenantId") String tenantId);
+    Integer updateParamToNUll(
+            @Param("robotId") String robotId, @Param("userId") String userId, @Param("tenantId") String tenantId);
 
     Integer updateRobotByPull(RobotExecute robotExecute);
-
 
     Integer addRobotByDeploy(@Param("entities") List<RobotExecute> robotExecuteList);
 
@@ -68,66 +65,71 @@ public interface RobotExecuteDao extends BaseMapper<RobotExecute> {
 
     Integer updateRobotByPush(@Param("entity") MarketDto marketDto);
 
-    RobotExecute getRobotInfoByRobotId(@Param("robotId") String robotId,
-                                       @Param("userId") String userId,
-                                       @Param("tenantId") String tenantId);
-
+    RobotExecute getRobotInfoByRobotId(
+            @Param("robotId") String robotId, @Param("userId") String userId, @Param("tenantId") String tenantId);
 
     Integer saveParamInfo(RobotExecute robotExecute);
 
-    @Select("select * " +
-            "from robot_execute " +
-            "where deleted = 0 and creator_id = #{userId} and tenant_id = #{tenantId} and robot_id = #{robotId}")
-    RobotExecute getRobotExecute(@Param("robotId") String robotId, @Param("userId") String userId, @Param("tenantId") String tenantId);
+    @Select("select * " + "from robot_execute "
+            + "where deleted = 0 and creator_id = #{userId} and tenant_id = #{tenantId} and robot_id = #{robotId}")
+    RobotExecute getRobotExecute(
+            @Param("robotId") String robotId, @Param("userId") String userId, @Param("tenantId") String tenantId);
 
-    @Select("select * " +
-            "from robot_execute " +
-            "where tenant_id = #{tenantId} and robot_id = #{robotId}")
+    @Select("select * " + "from robot_execute " + "where tenant_id = #{tenantId} and robot_id = #{robotId}")
     RobotExecute getRobotExecuteByTenantId(@Param("robotId") String robotId, @Param("tenantId") String tenantId);
 
-    @Select("select * " +
-            "from robot_execute " +
-            "where robot_id = #{robotId} and deleted = 0")
+    @Select("select * " + "from robot_execute " + "where robot_id = #{robotId} and deleted = 0")
     RobotExecute getRobotExecuteByRobotId(@Param("robotId") String robotId);
 
-    PrePage<RobotExecute> getDeployedUserList(PrePage<RobotExecute> pageConfig, @Param("entity") MarketDto marketDto, @Param("databaseName") String databaseName);
+    PrePage<RobotExecute> getDeployedUserList(
+            PrePage<RobotExecute> pageConfig,
+            @Param("entity") MarketDto marketDto,
+            @Param("databaseName") String databaseName);
 
-    PrePage<DeployedUserDto> getCloudDeployedUserList(PrePage<DeployedUserDto> pageConfig,
-                                                      @Param("entity") QueryDeployedUserDto queryDeployedUserDto,
-                                                      @Param("tenantId") String tenantId,
-                                                      @Param("databaseName") String databaseName);
+    PrePage<DeployedUserDto> getCloudDeployedUserList(
+            PrePage<DeployedUserDto> pageConfig,
+            @Param("entity") QueryDeployedUserDto queryDeployedUserDto,
+            @Param("tenantId") String tenantId,
+            @Param("databaseName") String databaseName);
 
     RobotExecute getAuthInfo(AppMarketResource appMarketResource);
 
-    DeployedUserDto getAuthInfoForDeployed(@Param("robotId") String robotId,
-                                           @Param("tenantId") String tenantId);
+    DeployedUserDto getAuthInfoForDeployed(@Param("robotId") String robotId, @Param("tenantId") String tenantId);
 
-    Integer deleteExecute(@Param("robotId") String robotId, @Param("userId") String userId, @Param("tenantId") String tenantId);
+    Integer deleteExecute(
+            @Param("robotId") String robotId, @Param("userId") String userId, @Param("tenantId") String tenantId);
 
     @Select("select file_name from file where file_id = #{fileId} and deleted = 0")
     String getFileName(@Param("fileId") String fileId);
 
+    List<RobotExecute> getExecuteByAppIdList(
+            @Param("userId") String userId,
+            @Param("tenantId") String tenantId,
+            @Param("marketId") String marketId,
+            @Param("appIdList") List<String> appIdList);
 
-    List<RobotExecute> getExecuteByAppIdList(@Param("userId") String userId, @Param("tenantId") String tenantId,
-                                             @Param("marketId") String marketId, @Param("appIdList") List<String> appIdList);
+    @Select("select * " + "from robot_execute "
+            + "where deleted = 0 and creator_id = #{userId} and market_id = #{marketId} and tenant_id = #{tenantId} and app_id = #{appId} "
+            + "order by app_version desc "
+            + "limit 1")
+    RobotExecute getExecuteByAppId(
+            @Param("userId") String userId,
+            @Param("tenantId") String tenantId,
+            @Param("marketId") String marketId,
+            @Param("appId") String appId);
 
-    @Select("select * " +
-            "from robot_execute " +
-            "where deleted = 0 and creator_id = #{userId} and market_id = #{marketId} and tenant_id = #{tenantId} and app_id = #{appId} " +
-            "order by app_version desc " +
-            "limit 1")
-    RobotExecute getExecuteByAppId(@Param("userId") String userId, @Param("tenantId") String tenantId,
-                                   @Param("marketId") String marketId, @Param("appId") String appId);
+    List<RobotExecute> getExeByAppIdsRobotIds(
+            @Param("userId") String userId,
+            @Param("tenantId") String tenantId,
+            @Param("queryInfoList") List<RobotExecute> queryInfoList);
 
-    List<RobotExecute> getExeByAppIdsRobotIds(@Param("userId") String userId, @Param("tenantId") String tenantId,
-                                              @Param("queryInfoList") List<RobotExecute> queryInfoList);
-
-    List<HisBaseDto> countRobotTotalNumByDate(@Param("endOfDay") String endOfDay, @Param("deptUserList") List<DeptUser> deptUserList);
+    List<HisBaseDto> countRobotTotalNumByDate(
+            @Param("endOfDay") String endOfDay, @Param("deptUserList") List<DeptUser> deptUserList);
 
     List<RobotExecuteByNameNDeptVo> getRobotExecuteByNameNDept(RobotExecuteByNameNDeptDto queryDto);
 
-
-    List<RobotExecute> getRobotExecuteByName(@Param("name") String name, @Param("userId") String userId, @Param("tenantId") String tenantId);
+    List<RobotExecute> getRobotExecuteByName(
+            @Param("name") String name, @Param("userId") String userId, @Param("tenantId") String tenantId);
 
     List<RobotNameDto> getRobotNameListByName(@Param("name") String robotName, @Param("entity") BaseDto baseDto);
 
@@ -140,7 +142,5 @@ public interface RobotExecuteDao extends BaseMapper<RobotExecute> {
      */
     List<RobotExecute> getRobotListForDispatch(@Param("name") String name, @Param("tenantId") String tenantId);
 
-
     List<RobotExecute> getRobotListForRule(@Param("name") String name, @Param("tenantId") String tenantId);
 }
-

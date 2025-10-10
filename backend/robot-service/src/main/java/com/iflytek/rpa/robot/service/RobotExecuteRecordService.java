@@ -7,7 +7,6 @@ import com.iflytek.rpa.robot.entity.dto.ExecuteRecordDto;
 import com.iflytek.rpa.robot.entity.dto.RobotExecuteRecordsBatchDeleteDto;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
-
 import java.util.List;
 
 /**

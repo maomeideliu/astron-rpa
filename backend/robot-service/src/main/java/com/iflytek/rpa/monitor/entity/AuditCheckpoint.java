@@ -39,7 +39,6 @@ public class AuditCheckpoint {
         this.auditObjectType = auditObjectType;
     }
 
-
     public String getLastProcessedId() {
         return lastProcessedId;
     }

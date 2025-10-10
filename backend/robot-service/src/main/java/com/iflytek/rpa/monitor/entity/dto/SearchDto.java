@@ -1,9 +1,8 @@
 package com.iflytek.rpa.monitor.entity.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Data;
-
 import java.util.Date;
+import lombok.Data;
 
 /**
  * @author mjren
@@ -15,13 +14,11 @@ public class SearchDto {
 
     private String deptId;
 
-
     /**
      * 截止时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     private Date countTime;
-
 
     /**
      * 用于趋势图的开始时间
@@ -33,7 +30,4 @@ public class SearchDto {
      */
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     private Date endTime;
-
-
-
 }

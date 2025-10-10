@@ -6,9 +6,8 @@ import com.iflytek.rpa.robot.entity.dto.*;
 import com.iflytek.rpa.robot.entity.vo.RobotExecuteByNameNDeptVo;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
-import org.springframework.web.bind.annotation.RequestBody;
-
 import java.util.List;
+import org.springframework.web.bind.annotation.RequestBody;
 
 /**
  * 云端机器人表(RobotExecute)表服务接口
@@ -31,8 +30,8 @@ public interface RobotExecuteService {
 
     List<HisBaseDto> countRobotTotalNumByDate(String endOfDay, List<DeptUser> userIdList);
 
-    AppResponse<List<RobotExecuteByNameNDeptVo>> getRobotExecuteList(@RequestBody RobotExecuteByNameNDeptDto queryDto) throws NoLoginException;
+    AppResponse<List<RobotExecuteByNameNDeptVo>> getRobotExecuteList(@RequestBody RobotExecuteByNameNDeptDto queryDto)
+            throws NoLoginException;
 
     AppResponse<?> transferRobot(TransferRobotDto transferRobotDto) throws Exception;
-
 }

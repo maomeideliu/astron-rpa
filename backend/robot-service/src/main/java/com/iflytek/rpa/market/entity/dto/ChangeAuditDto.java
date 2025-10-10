@@ -1,9 +1,8 @@
 package com.iflytek.rpa.market.entity.dto;
 
-import lombok.Data;
-
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import lombok.Data;
 
 /**
  * @author mjren
@@ -29,11 +28,8 @@ public class ChangeAuditDto {
      */
     private String allowedDept;
 
-
     /**
      * 选择绿色密级时，后续更新发版是否默认通过
      */
     private Integer defaultPass;
-
-
 }

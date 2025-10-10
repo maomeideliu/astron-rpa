@@ -6,12 +6,11 @@ import com.iflytek.rpa.market.entity.MarketDto;
 import com.iflytek.rpa.market.entity.dto.MarketResourceDto;
 import com.iflytek.rpa.market.entity.dto.ShareRobotDto;
 import com.iflytek.rpa.robot.entity.RobotExecute;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
-
-import java.util.List;
 
 /**
  * 团队市场-资源映射表(AppMarketResource)表数据库访问层
@@ -36,19 +35,16 @@ public interface AppMarketResourceDao extends BaseMapper<AppMarketResource> {
 
     String getAppNameByAppId(@Param("appId") String appId);
 
-
     AppMarketResource getAppInfoByAppId(MarketDto marketDto);
 
-    Integer deleteApp(@Param("appId") String appId, @Param("marketId") String marketId, @Param("tenantId") String tenantId);
+    Integer deleteApp(
+            @Param("appId") String appId, @Param("marketId") String marketId, @Param("tenantId") String tenantId);
 
-    @Select("select * " +
-            "from app_market_resource " +
-            "where app_id = #{appId} and market_id = #{marketId} and deleted = 0")
+    @Select("select * " + "from app_market_resource "
+            + "where app_id = #{appId} and market_id = #{marketId} and deleted = 0")
     AppMarketResource getAppResource(@Param("appId") String appId, @Param("marketId") String marketId);
 
-    @Select("select * " +
-            "from app_market_resource " +
-            "where app_id = #{appId} and market_id = #{marketId}")
+    @Select("select * " + "from app_market_resource " + "where app_id = #{appId} and market_id = #{marketId}")
     AppMarketResource getAppResourceRegardlessDel(@Param("appId") String appId, @Param("marketId") String marketId);
 
     @Update("update app_market_resource set download_num=#{downloadNum} where deleted=0 and id=#{resourceId}")
@@ -56,6 +52,4 @@ public interface AppMarketResourceDao extends BaseMapper<AppMarketResource> {
 
     @Update("update app_market_resource set check_num=#{checkNum} where deleted=0 and id=#{resourceId}")
     void syncCheckNumsWithRedis(@Param("checkNum") Long checkNum, @Param("resourceId") Long resourceId);
-
 }
-

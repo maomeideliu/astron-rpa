@@ -1,10 +1,9 @@
 package com.iflytek.rpa.market.entity.dto;
 
-import lombok.Data;
-
+import java.util.List;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.util.List;
+import lombok.Data;
 
 /**
  * 客户端上架申请DTO
@@ -39,5 +38,4 @@ public class ReleaseApplicationDto {
      * 分类
      */
     private String category;
-
 }

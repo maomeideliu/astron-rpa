@@ -9,9 +9,8 @@ import com.iflytek.rpa.monitor.entity.dto.RobotRecordDto;
 import com.iflytek.rpa.monitor.entity.vo.RobotStatisticsVo;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
-
-import javax.servlet.http.HttpServletResponse;
 import java.util.List;
+import javax.servlet.http.HttpServletResponse;
 
 public interface HisRobotService extends IService<HisRobot> {
 
@@ -19,7 +18,7 @@ public interface HisRobotService extends IService<HisRobot> {
 
     AppResponse<IPage<RobotStatisticsVo>> getRobotExecuteList(RobotRecordDto queryDto) throws NoLoginException;
 
-    void getRobotExecuteExcel(RobotRecordDto queryDto, HttpServletResponse response) ;
+    void getRobotExecuteExcel(RobotRecordDto queryDto, HttpServletResponse response);
 
     void insertBatch(List<HisRobot> hisRobotBatchData);
 }

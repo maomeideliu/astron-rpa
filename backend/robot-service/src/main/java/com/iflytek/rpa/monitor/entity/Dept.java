@@ -1,10 +1,8 @@
 package com.iflytek.rpa.monitor.entity;
 
-
-import lombok.Data;
-
 import java.io.Serializable;
 import java.util.Date;
+import lombok.Data;
 
 /**
  * 部门表(Dept)实体类
@@ -31,25 +29,22 @@ public class Dept implements Serializable {
      * 上级部门id
      */
     private Long parentId;
-    
+
     private Integer sort;
     /**
      * 删除标志
      */
     private Integer deleted;
-    
+
     private String tenantId;
-    
+
     private Date createTime;
-    
+
     private Date updateTime;
-    
+
     private String creatorId;
-    
+
     private Long updateBy;
 
     private String deptIdPath;
-
-
 }
-

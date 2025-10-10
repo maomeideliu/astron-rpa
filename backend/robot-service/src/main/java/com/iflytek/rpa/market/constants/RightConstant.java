@@ -19,5 +19,4 @@ public class RightConstant {
     public static final String market_user_role = "market_user_role";
 
     public static final String market_user_delete = "market_user_delete";
-
 }

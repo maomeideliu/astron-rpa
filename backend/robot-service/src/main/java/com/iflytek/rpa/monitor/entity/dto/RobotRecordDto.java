@@ -1,10 +1,9 @@
 package com.iflytek.rpa.monitor.entity.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Data;
-
 import java.util.Date;
 import java.util.List;
+import lombok.Data;
 
 @Data
 public class RobotRecordDto {

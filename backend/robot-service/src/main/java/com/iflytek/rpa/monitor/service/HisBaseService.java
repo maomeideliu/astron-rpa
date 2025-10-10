@@ -6,7 +6,6 @@ import com.iflytek.rpa.monitor.entity.HisDataEnum;
 import com.iflytek.rpa.monitor.entity.dto.BaseDto;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
-
 import java.text.ParseException;
 import java.util.List;
 
@@ -22,7 +21,8 @@ public interface HisBaseService extends IService<HisBase> {
 
     AppResponse<List<HisBase>> robotExecuteTimeHistory(BaseDto baseDto) throws ParseException, NoLoginException;
 
-    AppResponse<List<HisBase>> robotExecuteNumAndSuccessRateHistory(BaseDto baseDto) throws ParseException, NoLoginException;
+    AppResponse<List<HisBase>> robotExecuteNumAndSuccessRateHistory(BaseDto baseDto)
+            throws ParseException, NoLoginException;
 
     AppResponse<List<HisBase>> laborSaveHistory(BaseDto baseDto) throws ParseException, NoLoginException;
 
@@ -33,5 +33,4 @@ public interface HisBaseService extends IService<HisBase> {
     void setDataAuth(BaseDto baseDto);
 
     void insertBatch(List<HisBase> hisBaseList);
-
 }

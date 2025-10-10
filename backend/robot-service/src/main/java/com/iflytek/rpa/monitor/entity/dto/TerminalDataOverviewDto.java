@@ -13,5 +13,4 @@ public class TerminalDataOverviewDto {
      * 执行时长
      */
     private String terminalTimeHour;
-
 }

@@ -4,12 +4,11 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Data;
-
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
+import lombok.Data;
 
 /**
  * 终端执行情况表(his_terminal)实体类
@@ -74,7 +73,9 @@ public class HisTerminal implements Serializable {
      * 获取执行时长（小时）
      */
     public BigDecimal getExecuteTimeHourData() {
-        return executeTime == null ? BigDecimal.ZERO : new BigDecimal(executeTime).divide(new BigDecimal(3600), 2, RoundingMode.HALF_UP);
+        return executeTime == null
+                ? BigDecimal.ZERO
+                : new BigDecimal(executeTime).divide(new BigDecimal(3600), 2, RoundingMode.HALF_UP);
     }
 
     /**

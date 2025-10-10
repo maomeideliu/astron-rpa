@@ -20,16 +20,15 @@ import com.iflytek.rpa.starter.utils.response.AppResponse;
 import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
 import com.iflytek.rpa.utils.TenantUtils;
 import com.iflytek.rpa.utils.UserUtils;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 @Service
 @Slf4j
@@ -65,10 +64,10 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
 
                 // 构造消息
                 String messageInfo = "";
-                if (StringUtils.equals(createNotifyDto.getMessageType(), "teamMarketInvite")){
+                if (StringUtils.equals(createNotifyDto.getMessageType(), "teamMarketInvite")) {
                     // 构造邀人消息体
                     messageInfo = buildMessageInfo4Invite(inviteUserId, createNotifyDto.getMarketId());
-                }else {
+                } else {
                     // 构造应用更新的消息
                     messageInfo = buildMessageInfo4AppUpdate(createNotifyDto.getMarketId(), createNotifyDto.getAppId());
                 }
@@ -93,9 +92,9 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
 
             boolean b = saveBatch(notifySendList);
 
-            if (b || marketUserList.size() == 0){
+            if (b || marketUserList.size() == 0) {
                 return AppResponse.success("产生消息成功");
-            }else {
+            } else {
                 return AppResponse.error(ErrorCodeEnum.E_SQL_EXCEPTION);
             }
         }
@@ -134,9 +133,7 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
             wrapper.eq(NotifySend::getDeleted, 0);
             wrapper.eq(NotifySend::getUserId, userId);
             wrapper.eq(NotifySend::getTenantId, tenantId);
-            wrapper.last(" and create_time >= DATE_SUB(NOW(), INTERVAL 6 MONTH) " +
-                    "order by create_time desc");
-
+            wrapper.last(" and create_time >= DATE_SUB(NOW(), INTERVAL 6 MONTH) " + "order by create_time desc");
 
             IPage<NotifySend> rePage = this.page(page, wrapper);
 
@@ -186,7 +183,7 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
     }
 
     @Override
-    public AppResponse<?> setAllNotifyRead() throws NoLoginException{
+    public AppResponse<?> setAllNotifyRead() throws NoLoginException {
 
         AppResponse<?> response = UserUtils.nowLoginUserResponse();
         if (response.ok()) {
@@ -205,9 +202,9 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
         AppResponse<?> response = UserUtils.nowLoginUserResponse();
         if (response.ok()) {
             boolean b = baseMapper.setOneRead(notifyId);
-            if (b){
+            if (b) {
                 return AppResponse.success("已读成功");
-            }else {
+            } else {
                 return AppResponse.error(ErrorCodeEnum.E_SQL_EXCEPTION);
             }
         }
@@ -219,9 +216,9 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
         AppResponse<?> response = UserUtils.nowLoginUserResponse();
         if (response.ok()) {
             boolean b = baseMapper.setOneReject(notifyId);
-            if (b){
+            if (b) {
                 return AppResponse.success("成功拒绝");
-            }else {
+            } else {
                 return AppResponse.error(ErrorCodeEnum.E_SQL_EXCEPTION);
             }
         }
@@ -238,23 +235,24 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
             String tenantId = TenantUtils.getTenantId();
 
             NotifySend notifySend = baseMapper.selectById(notifyId);
-            if (notifySend == null){
+            if (notifySend == null) {
                 return AppResponse.error(ErrorCodeEnum.E_SQL_EXCEPTION);
             }
             if (!userId.equals(notifySend.getUserId())) {
                 return AppResponse.error("越权访问");
             }
 
-            if (notifySend.getOperateResult().equals(3) || notifySend.getOperateResult().equals(4)){
+            if (notifySend.getOperateResult().equals(3)
+                    || notifySend.getOperateResult().equals(4)) {
                 return AppResponse.error("已经操作，请勿重复动作");
             }
 
             // 判断是否已经在该市场中
             String marketId = baseMapper.getMarketIdFromAppMarketUser(userId, notifySend.getMarketId());
-            if (marketId != null){
+            if (marketId != null) {
                 baseMapper.joinTeam(notifyId);
                 return AppResponse.error("已经在团队当中，无需重复加入");
-            }else {
+            } else {
                 AppMarketUser appMarketUser = new AppMarketUser();
                 appMarketUser.setTenantId(tenantId);
                 appMarketUser.setMarketId(notifySend.getMarketId());
@@ -265,9 +263,9 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
                 int insert = appMarketUserDao.insert(appMarketUser);
                 boolean b = baseMapper.joinTeam(notifyId);
 
-                if (insert > 0 && b){
+                if (insert > 0 && b) {
                     return AppResponse.success("加入团队成功");
-                }else {
+                } else {
                     return AppResponse.error("加入团队失败");
                 }
             }
@@ -276,27 +274,19 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
         return response;
     }
 
-    private String buildMessageInfo4Invite(String userId, String marketId){
-        String userName =  UserUtils.getRealNameById(userId);
+    private String buildMessageInfo4Invite(String userId, String marketId) {
+        String userName = UserUtils.getRealNameById(userId);
         String marketName = baseMapper.getMarketName(marketId);
 
-        String res = "[" + userName + "]" +
-                "邀请你加入团队市场：" +
-                "[" + marketName + "]" + "," +
-                "确认是否加入？";
+        String res = "[" + userName + "]" + "邀请你加入团队市场：" + "[" + marketName + "]" + "," + "确认是否加入？";
         return res;
     }
 
-    private String buildMessageInfo4AppUpdate(String marketId, String appId){
+    private String buildMessageInfo4AppUpdate(String marketId, String appId) {
         String marketName = baseMapper.getMarketName(marketId);
         String appName = baseMapper.getAppName(marketId, appId);
 
-
-        String res = "你在团队市场["
-                + marketName
-                + "]获取的应用/模板/组件["
-                + appName
-                + "]有更新，去看看吧";
+        String res = "你在团队市场[" + marketName + "]获取的应用/模板/组件[" + appName + "]有更新，去看看吧";
         return res;
     }
 
@@ -316,12 +306,11 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
             applicationTypeStr = "上架";
         }
         RobotExecute robotExecute = robotExecuteDao.queryByRobotId(
-                applicationNotifyDto.getRobotId(), 
-                applicationNotifyDto.getUserId(), 
-                applicationNotifyDto.getTenantId()
-        );
+                applicationNotifyDto.getRobotId(),
+                applicationNotifyDto.getUserId(),
+                applicationNotifyDto.getTenantId());
         String robotStr = robotExecute != null ? robotExecute.getName() : "";
-        
+
         return String.format("您的%s机器人%s申请流程%s，请至应用市场查看", robotStr, applicationTypeStr, statusStr);
     }
 }

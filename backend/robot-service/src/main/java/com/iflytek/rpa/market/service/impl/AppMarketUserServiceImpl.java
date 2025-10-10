@@ -1,5 +1,7 @@
 package com.iflytek.rpa.market.service.impl;
 
+import static com.iflytek.rpa.robot.constants.RobotConstant.OBTAINED;
+
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -17,20 +19,17 @@ import com.iflytek.rpa.starter.utils.response.AppResponse;
 import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
 import com.iflytek.rpa.utils.TenantUtils;
 import com.iflytek.rpa.utils.UserUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-
-import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static com.iflytek.rpa.robot.constants.RobotConstant.OBTAINED;
 
 /**
  * 团队市场-人员表，n:n的关系(AppMarketUser)表服务实现类
@@ -39,7 +38,8 @@ import static com.iflytek.rpa.robot.constants.RobotConstant.OBTAINED;
  * @since 2024-01-19 14:41:35
  */
 @Service("appMarketUserService")
-public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppMarketUser>  implements AppMarketUserService {
+public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppMarketUser>
+        implements AppMarketUserService {
     @Resource
     private AppMarketUserDao appMarketUserDao;
 
@@ -55,46 +55,44 @@ public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppM
     @Value("${casdoor.database.name:casdoor}")
     private String databaseName;
 
-
     @Override
     public AppResponse<?> getUserUnDeployed(MarketDto marketDto) throws NoLoginException {
-        //获取没部署的账号
+        // 获取没部署的账号
         String tenantId = TenantUtils.getTenantId();
 
-        if(StringUtils.isNotBlank(marketDto.getPhone()) && !marketDto.getPhone().matches("[0-9]{0,10}")){
-            return AppResponse.error(ErrorCodeEnum.E_PARAM,"请输入合法手机号");
+        if (StringUtils.isNotBlank(marketDto.getPhone())
+                && !marketDto.getPhone().matches("[0-9]{0,10}")) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM, "请输入合法手机号");
         }
-        if (null == marketDto.getMarketId() || null == marketDto.getAppId()){
-            return AppResponse.error(ErrorCodeEnum.E_PARAM_LOSE,"缺少应用信息");
+        if (null == marketDto.getMarketId() || null == marketDto.getAppId()) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM_LOSE, "缺少应用信息");
         }
         marketDto.setTenantId(tenantId);
         List<MarketDto> userList = appMarketUserDao.getUserUnDeployed(marketDto, databaseName);
         return AppResponse.success(userList);
     }
 
-
-
     @Override
-    public AppResponse getUserList(MarketDto marketDto){
+    public AppResponse getUserList(MarketDto marketDto) {
         String marketId = marketDto.getMarketId();
         IPage<MarketDto> userListPage = new Page<>();
         if (null == marketId || null == marketDto.getPageNo() || null == marketDto.getPageSize()) {
             return AppResponse.error(ErrorCodeEnum.E_PARAM_LOSE);
         }
         IPage<MarketDto> pageConfig = new Page<>(marketDto.getPageNo(), marketDto.getPageSize(), true);
-        //根据marketId获取appId
+        // 根据marketId获取appId
         userListPage = appMarketUserDao.getUserList(pageConfig, marketDto, databaseName);
-        if(CollectionUtils.isEmpty(userListPage.getRecords())){
+        if (CollectionUtils.isEmpty(userListPage.getRecords())) {
             return AppResponse.success(userListPage);
         }
-        //获取市场创建者
+        // 获取市场创建者
         String creatorId = appMarketDao.getCreator(marketId);
-        if(null != creatorId){
-            for(MarketDto userInfo : userListPage.getRecords()){
-                if(creatorId.equals(userInfo.getCreatorId())){
+        if (null != creatorId) {
+            for (MarketDto userInfo : userListPage.getRecords()) {
+                if (creatorId.equals(userInfo.getCreatorId())) {
                     userListPage.getRecords().remove(userInfo);
                     userInfo.setIsCreator(true);
-                    userListPage.getRecords().add(0,userInfo);
+                    userListPage.getRecords().add(0, userInfo);
                     break;
                 }
             }
@@ -106,20 +104,20 @@ public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppM
     @Transactional(rollbackFor = Exception.class)
     public AppResponse deleteUser(MarketDto marketDto) throws NoLoginException {
         String marketId = marketDto.getMarketId();
-        if(null == marketId || null == marketDto.getCreatorId()){
+        if (null == marketId || null == marketDto.getCreatorId()) {
             return AppResponse.error(ErrorCodeEnum.E_PARAM_LOSE);
         }
         String ownerId = appMarketUserDao.getOwnerByRole(marketDto.getMarketId());
-        if(marketDto.getCreatorId().equals(ownerId)){
+        if (marketDto.getCreatorId().equals(ownerId)) {
             return AppResponse.error(ErrorCodeEnum.E_PARAM, "不能移出创建者");
         }
-        if(marketDto.getCreatorId().equals(UserUtils.nowUserId())){
+        if (marketDto.getCreatorId().equals(UserUtils.nowUserId())) {
             return AppResponse.error(ErrorCodeEnum.E_PARAM, "自己不能移出自己");
         }
-        //如果不在该市场，则无权限
+        // 如果不在该市场，则无权限
         Integer result = appMarketUserDao.deleteUser(marketDto);
-        if(result > 0){
-            //若从市场中获取过应用，将待更新应用的状态置为已获取，本人，市场id
+        if (result > 0) {
+            // 若从市场中获取过应用，将待更新应用的状态置为已获取，本人，市场id
             robotExecuteDao.updateResourceStatusByMarketId(OBTAINED, marketDto.getCreatorId(), marketId);
             return AppResponse.success(true);
         }
@@ -129,36 +127,36 @@ public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppM
     @Override
     public AppResponse roleSet(MarketDto marketDto) throws NoLoginException {
         String marketId = marketDto.getMarketId();
-        if(null == marketId || null == marketDto.getCreatorId() || null == marketDto.getUserType()){
+        if (null == marketId || null == marketDto.getCreatorId() || null == marketDto.getUserType()) {
             return AppResponse.error(ErrorCodeEnum.E_PARAM_LOSE);
         }
         String userId = UserUtils.nowUserId();
-        if(userId.equals(marketDto.getCreatorId())){
+        if (userId.equals(marketDto.getCreatorId())) {
             return AppResponse.error(ErrorCodeEnum.E_SERVICE_NOT_SUPPORT, "无法更改自己的角色");
         }
-        //如果不在该市场，则无权限操作
-        if(!isExistsInMarket(userId, marketId)){
+        // 如果不在该市场，则无权限操作
+        if (!isExistsInMarket(userId, marketId)) {
             return AppResponse.error(ErrorCodeEnum.E_SERVICE_NOT_SUPPORT);
         }
-        //如果不是管理员，则无权限操作
-//        if(!isAdminInMarket(userId, marketId)){
-//            return AppResponse.error(ErrorCodeEnum.E_SERVICE_NOT_SUPPORT);
-//        }
+        // 如果不是管理员，则无权限操作
+        //        if(!isAdminInMarket(userId, marketId)){
+        //            return AppResponse.error(ErrorCodeEnum.E_SERVICE_NOT_SUPPORT);
+        //        }
         String ownerId = appMarketUserDao.getOwnerByRole(marketId);
-        if(marketDto.getUserType().equals("owner") && !marketDto.getCreatorId().equals(ownerId)){
-            return AppResponse.error(ErrorCodeEnum.E_PARAM_CHECK,"市场只能有一个拥有者");
+        if (marketDto.getUserType().equals("owner") && !marketDto.getCreatorId().equals(ownerId)) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM_CHECK, "市场只能有一个拥有者");
         }
-        if(!marketDto.getUserType().equals("owner") && marketDto.getCreatorId().equals(ownerId)){
-            return AppResponse.error(ErrorCodeEnum.E_PARAM_CHECK,"创建者角色不可更改");
+        if (!marketDto.getUserType().equals("owner") && marketDto.getCreatorId().equals(ownerId)) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM_CHECK, "创建者角色不可更改");
         }
         Integer result = appMarketUserDao.roleSet(marketDto);
-        if(result > 0){
+        if (result > 0) {
             return AppResponse.success(true);
         }
         return AppResponse.success(false);
     }
 
-    private Boolean isExistsInMarket(String userId, String marketId){
+    private Boolean isExistsInMarket(String userId, String marketId) {
         AppMarketUser appMarketUser = new AppMarketUser();
         appMarketUser.setMarketId(marketId);
         appMarketUser.setCreatorId(userId);
@@ -167,7 +165,7 @@ public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppM
         return count > 0;
     }
 
-    private Boolean isAdminInMarket(String userId, String marketId){
+    private Boolean isAdminInMarket(String userId, String marketId) {
         AppMarketUser appMarketUser = new AppMarketUser();
         appMarketUser.setMarketId(marketId);
         appMarketUser.setCreatorId(userId);
@@ -178,7 +176,7 @@ public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppM
     }
 
     @Override
-    public AppResponse getUserByPhone(MarketDto marketDto){
+    public AppResponse getUserByPhone(MarketDto marketDto) {
         String marketId = marketDto.getMarketId();
         String tenantId = TenantUtils.getTenantId();
 
@@ -208,38 +206,35 @@ public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppM
         return AppResponse.success(userListAfterFilter);
     }
 
-    private List<MarketDto> filterUser4Leave(List<MarketDto> userList, String marketId, String tenantId, String userId){
+    private List<MarketDto> filterUser4Leave(
+            List<MarketDto> userList, String marketId, String tenantId, String userId) {
         List<Long> marketUserIdList = appMarketUserDao.getAllUserId(tenantId, marketId);
 
         // 在市场内的userList
-        List<MarketDto> userListInMarket = userList
-                .stream()
+        List<MarketDto> userListInMarket = userList.stream()
                 .filter(marketDto -> marketUserIdList.contains(marketDto.getCreatorId()))
                 .collect(Collectors.toList());
 
         // 排除自己
-        List<MarketDto> userListFinal = userListInMarket
-                .stream()
+        List<MarketDto> userListFinal = userListInMarket.stream()
                 .filter(marketDto1 -> !(marketDto1.getCreatorId().equals(userId)))
                 .collect(Collectors.toList());
 
         return userListFinal;
     }
 
-    private List<MarketDto> filterUserAlreadyInMarket(List<MarketDto> userList, String marketId, String tenantId){
+    private List<MarketDto> filterUserAlreadyInMarket(List<MarketDto> userList, String marketId, String tenantId) {
 
         List<String> userIdList = userList.stream().map(MarketDto::getCreatorId).collect(Collectors.toList());
 
         List<String> marketUserIdInList = appMarketUserDao.getMarketUserInList(marketId, userIdList, tenantId);
 
-        List<MarketDto> userListAfterFilter = userList
-                .stream()
+        List<MarketDto> userListAfterFilter = userList.stream()
                 .filter(marketDto -> !marketUserIdInList.contains(marketDto.getCreatorId()))
                 .collect(Collectors.toList());
 
         return userListAfterFilter;
     }
-
 
     @Override
     public AppResponse inviteUser(MarketDto marketDto) throws NoLoginException {
@@ -249,16 +244,17 @@ public class AppMarketUserServiceImpl extends ServiceImpl<AppMarketUserDao, AppM
             return AppResponse.error(ErrorCodeEnum.E_PARAM_LOSE);
         }
         String tenantId = TenantUtils.getTenantId();
-        //判断邀请的人是否在本租户内
-        List<TenantUser> tenantUserList = appMarketUserDao.getTenantUser(tenantId,userInfoList, databaseName);
-        //根据userId分组
-        Map<String, String> userMap = tenantUserList.stream().collect(Collectors.toMap(TenantUser::getUserId, TenantUser::getTenantId));
+        // 判断邀请的人是否在本租户内
+        List<TenantUser> tenantUserList = appMarketUserDao.getTenantUser(tenantId, userInfoList, databaseName);
+        // 根据userId分组
+        Map<String, String> userMap =
+                tenantUserList.stream().collect(Collectors.toMap(TenantUser::getUserId, TenantUser::getTenantId));
 
-        for(AppMarketUser userInfo:userInfoList){
-            if(null == userInfo){
+        for (AppMarketUser userInfo : userInfoList) {
+            if (null == userInfo) {
                 continue;
             }
-            if(null == userMap.get(userInfo.getCreatorId())){
+            if (null == userMap.get(userInfo.getCreatorId())) {
                 return AppResponse.error(ErrorCodeEnum.E_SQL, "邀请了某些不存在该租户的用户");
             }
         }

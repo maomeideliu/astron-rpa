@@ -1,9 +1,8 @@
 package com.iflytek.rpa.monitor.entity.dto;
 
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import lombok.Data;
 
 @Data
 public class RobotExecuteTodayDto {
@@ -46,6 +45,8 @@ public class RobotExecuteTodayDto {
      * 获取执行时长（小时）
      */
     public BigDecimal getExecuteTimeHourData() {
-        return executeTime == null ? BigDecimal.ZERO : new BigDecimal(executeTime).divide(new BigDecimal(3600), 2, RoundingMode.HALF_UP);
+        return executeTime == null
+                ? BigDecimal.ZERO
+                : new BigDecimal(executeTime).divide(new BigDecimal(3600), 2, RoundingMode.HALF_UP);
     }
 }
