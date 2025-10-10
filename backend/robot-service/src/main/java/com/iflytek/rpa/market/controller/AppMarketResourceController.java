@@ -8,8 +8,12 @@ import com.iflytek.rpa.market.entity.dto.ShareRobotDto;
 import com.iflytek.rpa.market.service.AppMarketResourceService;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
+import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
+import java.util.List;
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -46,6 +50,22 @@ public class AppMarketResourceController {
      */
     @PostMapping("/obtain")
     public AppResponse<?> obtainRobot(@RequestBody MarketResourceDto marketResourceDto) throws Exception {
+        String marketId = marketResourceDto.getMarketId();
+        String robotName = marketResourceDto.getAppName();
+        if (StringUtils.isBlank(robotName)) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM, "机器人名称不能为空");
+        }
+        //        Integer editFlag = marketResourceDto.getEditFlag();
+        List<String> obtainDirectory = marketResourceDto.getObtainDirection();
+        if (CollectionUtils.isEmpty(obtainDirectory)) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM, "缺少获取去向");
+        }
+        if (null == marketId) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM, "缺少市场id");
+        }
+        if (null == marketResourceDto.getAppId()) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM, "缺少应用Id");
+        }
         return appMarketResourceService.obtainRobot(marketResourceDto);
     }
 

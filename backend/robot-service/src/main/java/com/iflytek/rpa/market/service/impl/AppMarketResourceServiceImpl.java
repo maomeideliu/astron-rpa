@@ -2,6 +2,7 @@ package com.iflytek.rpa.market.service.impl;
 
 import static com.iflytek.rpa.robot.constants.RobotConstant.*;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -12,6 +13,8 @@ import com.google.common.collect.Sets;
 import com.iflytek.rpa.base.dao.*;
 import com.iflytek.rpa.base.entity.CParam;
 import com.iflytek.rpa.base.service.CParamService;
+import com.iflytek.rpa.component.dao.ComponentRobotUseDao;
+import com.iflytek.rpa.component.entity.ComponentRobotUse;
 import com.iflytek.rpa.market.dao.*;
 import com.iflytek.rpa.market.entity.*;
 import com.iflytek.rpa.market.entity.dto.*;
@@ -107,6 +110,9 @@ public class AppMarketResourceServiceImpl extends ServiceImpl<AppMarketResourceD
 
     @Autowired
     private AppApplicationTenantDao appApplicationTenantDao;
+
+    @Autowired
+    private ComponentRobotUseDao componentUseDao;
 
     @Autowired
     private AppApplicationService appApplicationService;
@@ -305,28 +311,18 @@ public class AppMarketResourceServiceImpl extends ServiceImpl<AppMarketResourceD
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AppResponse<?> obtainRobot(MarketResourceDto marketResourceDto) throws NoLoginException {
-        String marketId = marketResourceDto.getMarketId();
-        String robotName = marketResourceDto.getAppName();
-        if (StringUtils.isBlank(robotName)) {
-            return AppResponse.error(ErrorCodeEnum.E_PARAM, "机器人名称不能为空");
-        }
-        //        Integer editFlag = marketResourceDto.getEditFlag();
-        Integer appVersion = marketResourceDto.getVersion();
         List<String> obtainDirectory = marketResourceDto.getObtainDirection();
-        if (CollectionUtils.isEmpty(obtainDirectory)) {
-            return AppResponse.error(ErrorCodeEnum.E_PARAM, "缺少获取去向");
-        }
-        if (null == marketId) {
-            return AppResponse.error(ErrorCodeEnum.E_PARAM, "缺少市场id");
-        }
-        if (null == marketResourceDto.getAppId()) {
-            return AppResponse.error(ErrorCodeEnum.E_PARAM, "缺少应用Id");
-        }
+        String robotName = marketResourceDto.getAppName();
+        Integer appVersion = marketResourceDto.getVersion();
+        String marketId = marketResourceDto.getMarketId();
+
         String userId = UserUtils.nowUserId();
         String tenantId = TenantUtils.getTenantId();
         marketResourceDto.setCreatorId(userId);
         marketResourceDto.setUpdaterId(userId);
         marketResourceDto.setTenantId(tenantId);
+
+        String newRobotId = idWorker.nextId() + "";
         // 判断该版本机器人是否存在
         RobotVersion robotVersion = robotVersionDao.getVersionInfo(marketResourceDto);
         if (null == robotVersion) {
@@ -345,7 +341,7 @@ public class AppMarketResourceServiceImpl extends ServiceImpl<AppMarketResourceD
             if (null != count && count > 0) {
                 return AppResponse.error(ErrorCodeEnum.E_SERVICE, "设计器存在同名机器人，请修改名称");
             }
-            robotDesign.setRobotId(idWorker.nextId() + "");
+            robotDesign.setRobotId(newRobotId);
             robotDesign.setAppId(marketResourceDto.getAppId());
             robotDesign.setAppVersion(appVersion);
             robotDesign.setMarketId(marketId);
@@ -373,13 +369,20 @@ public class AppMarketResourceServiceImpl extends ServiceImpl<AppMarketResourceD
         }
         if (obtainDirectory.contains("execute")) {
             // 获取到执行器
+
+            // 检查是自获取
+            Integer selfObtained = checkSelfObtain(marketResourceDto);
+            if (selfObtained > 0) {
+                return AppResponse.error(ErrorCodeEnum.E_SERVICE_NOT_SUPPORT, "本地已存在该机器人");
+            }
+
             // 是否重复获取
             Integer countObtained = robotExecuteDao.countObtainedExecute(marketResourceDto);
             if (countObtained > 0) {
                 return AppResponse.error(ErrorCodeEnum.E_SERVICE_NOT_SUPPORT, "执行器中该机器人当前版本已存在");
             }
             RobotExecute robotExecute = new RobotExecute();
-            BeanUtils.copyProperties(marketResourceDto, robotExecute);
+            BeanUtil.copyProperties(marketResourceDto, robotExecute);
             robotExecute.setName(robotName);
             robotExecute.setUpdateTime(new Date());
             robotExecute.setAppVersion(appVersion);
@@ -392,14 +395,64 @@ public class AppMarketResourceServiceImpl extends ServiceImpl<AppMarketResourceD
                 robotExecuteDao.updateObtainedRobot(robotExecute);
             } else {
                 // 插入
-                robotExecute.setRobotId(idWorker.nextId() + "");
+                robotExecute.setRobotId(newRobotId);
                 robotExecuteDao.insertObtainedRobot(robotExecute);
-            }
 
+                // 组件的引用也需要插入一下
+                addCompUseList(newRobotId, appVersion, robotVersion, tenantId, userId);
+            }
             increaseDownloadNum(marketResourceDto);
         }
 
         return AppResponse.success(true);
+    }
+
+    private Integer checkSelfObtain(MarketResourceDto marketResourceDto) {
+        MarketDto marketDto = new MarketDto();
+        BeanUtils.copyProperties(marketResourceDto, marketDto);
+        AppMarketResource appResource = appMarketResourceDao.getAppInfoByAppId(marketDto);
+        String robotId = appResource.getRobotId();
+        String creatorId = marketResourceDto.getCreatorId();
+        String tenantId = marketResourceDto.getTenantId();
+        if (!StringUtils.isEmpty(robotId) && !StringUtils.isEmpty(creatorId) && !StringUtils.isEmpty(tenantId)) {
+            RobotExecute robotExecute = robotExecuteDao.getRobotExecute(robotId, creatorId, tenantId);
+            if (null != robotExecute) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    public void addCompUseList(
+            String newRobotId,
+            Integer newRobotVersion,
+            RobotVersion authorRobotVersion,
+            String tenantId,
+            String userId) {
+        String authorRobotId = authorRobotVersion.getRobotId();
+        Integer authorVersion = authorRobotVersion.getVersion();
+        List<ComponentRobotUse> compUseListAuth =
+                componentUseDao.getByRobotIdAndVersion(authorRobotId, authorVersion, tenantId);
+
+        List<ComponentRobotUse> newCompUseList = new ArrayList<>();
+
+        for (ComponentRobotUse compRobotUse : compUseListAuth) {
+            ComponentRobotUse newCompUse = new ComponentRobotUse();
+
+            BeanUtils.copyProperties(compRobotUse, newCompUse);
+            newCompUse.setRobotId(newRobotId);
+            newCompUse.setRobotVersion(newRobotVersion);
+            newCompUse.setCreatorId(userId);
+            newCompUse.setUpdaterId(userId);
+            newCompUse.setTenantId(tenantId);
+            newCompUse.setCreateTime(new Date());
+            newCompUse.setUpdateTime(new Date());
+
+            newCompUseList.add(newCompUse);
+        }
+        if (!newCompUseList.isEmpty()) {
+            componentUseDao.insertBatch(newCompUseList);
+        }
     }
 
     private void increaseDownloadNum(MarketResourceDto marketResourceDto) {
