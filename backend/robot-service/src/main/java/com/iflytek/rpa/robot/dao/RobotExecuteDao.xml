@@ -476,6 +476,22 @@
         </foreach>
     </select>
 
+    <select id="countRobotTotalNumByDate" resultType="com.iflytek.rpa.monitor.entity.dto.HisBaseDto">
+        select
+        creator_id creatorId,
+        count(*) robotNum
+        from
+        robot_execute
+        where
+        deleted = 0
+        and create_time &lt; #{endOfDay}
+        and data_source = 'create'
+        and creator_id in
+        <foreach collection="deptUserList" item="deptUser" open="(" close=")" separator=",">
+            #{deptUser.userId}
+        </foreach>
+        group by creator_id
+    </select>
 
     <select id="countRobotTotalNumPersonal" resultType="java.lang.Long">
         select count(1)

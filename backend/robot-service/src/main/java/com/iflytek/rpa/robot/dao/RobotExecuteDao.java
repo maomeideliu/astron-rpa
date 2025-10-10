@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.iflytek.rpa.market.entity.AppMarketResource;
 import com.iflytek.rpa.market.entity.MarketDto;
 import com.iflytek.rpa.market.entity.dto.MarketResourceDto;
+import com.iflytek.rpa.monitor.entity.DeptUser;
+import com.iflytek.rpa.monitor.entity.dto.BaseDto;
+import com.iflytek.rpa.monitor.entity.dto.HisBaseDto;
 import com.iflytek.rpa.robot.entity.RobotExecute;
 import com.iflytek.rpa.robot.entity.dto.*;
 import com.iflytek.rpa.robot.entity.vo.RobotExecuteByNameNDeptVo;
@@ -119,12 +122,14 @@ public interface RobotExecuteDao extends BaseMapper<RobotExecute> {
     List<RobotExecute> getExeByAppIdsRobotIds(@Param("userId") String userId, @Param("tenantId") String tenantId,
                                               @Param("queryInfoList") List<RobotExecute> queryInfoList);
 
+    List<HisBaseDto> countRobotTotalNumByDate(@Param("endOfDay") String endOfDay, @Param("deptUserList") List<DeptUser> deptUserList);
 
     List<RobotExecuteByNameNDeptVo> getRobotExecuteByNameNDept(RobotExecuteByNameNDeptDto queryDto);
 
 
     List<RobotExecute> getRobotExecuteByName(@Param("name") String name, @Param("userId") String userId, @Param("tenantId") String tenantId);
 
+    List<RobotNameDto> getRobotNameListByName(@Param("name") String robotName, @Param("entity") BaseDto baseDto);
 
     /**
      * 调度模块-查询租户内所有可用机器人列表（包含版本信息）

@@ -7,6 +7,17 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.iflytek.rpa.base.dao.*;
 import com.iflytek.rpa.base.entity.*;
+import com.iflytek.rpa.market.dao.AppMarketResourceDao;
+import com.iflytek.rpa.market.dao.AppMarketUserDao;
+import com.iflytek.rpa.market.dao.AppMarketVersionDao;
+import com.iflytek.rpa.market.entity.AppMarketResource;
+import com.iflytek.rpa.market.entity.AppMarketUser;
+import com.iflytek.rpa.market.entity.AppMarketVersion;
+import com.iflytek.rpa.market.service.AppApplicationService;
+import com.iflytek.rpa.monitor.entity.DeptUser;
+import com.iflytek.rpa.monitor.entity.dto.BaseDto;
+import com.iflytek.rpa.monitor.entity.dto.HisBaseDto;
+import com.iflytek.rpa.monitor.service.HisBaseService;
 import com.iflytek.rpa.robot.dao.RobotDesignDao;
 import com.iflytek.rpa.robot.dao.RobotExecuteDao;
 import com.iflytek.rpa.robot.dao.RobotExecuteRecordDao;
@@ -19,22 +30,23 @@ import com.iflytek.rpa.robot.entity.vo.*;
 import com.iflytek.rpa.robot.service.RobotExecuteService;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.exception.ServiceException;
+import com.iflytek.rpa.utils.TenantUtils;
+import com.iflytek.rpa.utils.UserUtils;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
 import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
 import com.iflytek.rpa.task.dao.ScheduleTaskDao;
 import com.iflytek.rpa.task.dao.ScheduleTaskRobotDao;
 import com.iflytek.rpa.task.entity.ScheduleTaskRobot;
 import com.iflytek.rpa.triggerTask.dao.TriggerTaskDao;
-import com.iflytek.rpa.utils.TenantUtils;
-import com.iflytek.rpa.utils.UserUtils;
-import java.util.*;
-import java.util.stream.Collectors;
-import javax.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+
+import javax.annotation.Resource;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 云端机器人表(RobotExecute)表服务实现类
@@ -59,11 +71,21 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
     @Resource
     private ScheduleTaskDao scheduleTaskDao;
 
+    @Resource
+    private AppMarketVersionDao appVersionDao;
+
+    @Resource
+    private AppMarketResourceDao appResourceDao;
+
+    @Autowired
+    private AppMarketUserDao appMarketUserDao;
+
     @Autowired
     private TriggerTaskDao triggerTaskDao;
 
     @Resource
     private RobotExecuteRecordDao robotExecuteRecordDao;
+
 
     @Autowired
     private CElementDao cElementDao;
@@ -86,27 +108,20 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
     @Autowired
     private CRequireDao cRequireDao;
 
-    private final String filePathPrefix = "/api/resource/file/download?fileId=";
+    @Autowired
+    private AppMarketResourceDao appMarketResourceDao;
 
-    private static List<ExeUpdateCheckVo> getExeUpdateCheckVos(List<RobotExecute> robotExecuteList) {
-        List<ExeUpdateCheckVo> resVoList = new ArrayList<>();
-        for (RobotExecute robotExecute : robotExecuteList) {
-            Integer updateStatus = 0;
-            if (robotExecute.getResourceStatus() != null) {
-                updateStatus = robotExecute.getResourceStatus().equals("toUpdate") ? 1 : 0;
-            } else {
-                updateStatus = 0;
-            }
-            ExeUpdateCheckVo exeUpdateCheckVo = new ExeUpdateCheckVo();
+    @Autowired
+    private AppMarketVersionDao appMarketVersionDao;
 
-            exeUpdateCheckVo.setAppId(robotExecute.getAppId());
-            exeUpdateCheckVo.setRobotId(robotExecute.getRobotId());
-            exeUpdateCheckVo.setUpdateStatus(updateStatus);
+    @Autowired
+    private HisBaseService hisBaseService;
 
-            resVoList.add(exeUpdateCheckVo);
-        }
-        return resVoList;
-    }
+    @Autowired
+    private AppApplicationService appApplicationService;
+
+    private String filePathPrefix = "/api/resource/file/download?fileId=";
+
 
     @Override
     public AppResponse<?> executeList(ExecuteListDto queryDto) throws NoLoginException {
@@ -151,10 +166,7 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
                 String sourceName = "本地";
                 String appId = "";
                 Integer updateStatus = 0;
-                updateStatus = StringUtils.isNotBlank(record.getResourceStatus())
-                                && record.getResourceStatus().equals("toUpdate")
-                        ? 1
-                        : 0;
+                updateStatus = StringUtils.isNotBlank(record.getResourceStatus()) && record.getResourceStatus().equals("toUpdate") ? 1 : 0;
 
                 if (dataSource.equals("create")) {
                     sourceName = "本地";
@@ -179,6 +191,9 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
 
             setExecuteListRecord(ansRecords, recordRobotList);
 
+            // 开启上架审核后，填充使用权限
+            appApplicationService.packageUsePermission(ansRecords);
+
             ansPage.setSize(rePage.getSize());
             ansPage.setTotal(rePage.getTotal());
             ansPage.setRecords(ansRecords);
@@ -191,60 +206,67 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
 
     private void setExecuteListRecord(List<ExecuteListVo> ansRecords, List<RobotExecute> robotList) {
 
-        List<String> robotIdList =
-                robotList.stream().map(RobotExecute::getRobotId).collect(Collectors.toList());
+        List<String> robotIdList = robotList.stream()
+                .map(RobotExecute::getRobotId)
+                .collect(Collectors.toList());
 
         List<RobotVersion> robotVersionList = robotDesignDao.getRobotVersionList(robotIdList);
 
         for (ExecuteListVo ansRecord : ansRecords) {
             String robotId = ansRecord.getRobotId();
-            RobotExecute robotExecuteTmp = robotList.stream()
+            RobotExecute robotExecuteTmp = robotList
+                    .stream()
                     .filter(robotExecute -> robotExecute.getRobotId().equals(robotId))
-                    .collect(Collectors.toList())
-                    .get(0);
+                    .collect(Collectors.toList()).get(0);
 
             // 过滤出当前robotId的robotVersion
-            List<RobotVersion> robotVersionsTmp = robotVersionList.stream()
+            List<RobotVersion> robotVersionsTmp = robotVersionList
+                    .stream()
                     .filter(robotVersion -> robotVersion.getRobotId().equals(robotId))
                     .collect(Collectors.toList());
 
             if (!CollectionUtils.isEmpty(robotVersionsTmp)) {
                 // 说明是自己创建的
-                //                RobotVersion robotVersion = robotVersionsTmp
-                //                        .stream()
-                //                        .max(Comparator.comparing(RobotVersion::getVersion))
-                //                        .get();
+//                RobotVersion robotVersion = robotVersionsTmp
+//                        .stream()
+//                        .max(Comparator.comparing(RobotVersion::getVersion))
+//                        .get();
 
                 // 展示启用版本
-                RobotVersion robotVersion = robotVersionsTmp.stream()
+                RobotVersion robotVersion = robotVersionsTmp
+                        .stream()
                         .filter(robotVersion1 -> robotVersion1.getOnline().equals(1))
-                        .collect(Collectors.toList())
-                        .get(0);
+                        .collect(Collectors.toList()).get(0);
 
                 ansRecord.setVersion(robotVersion.getVersion());
             } else {
                 // 说明是获取的或者别人部署过来的
                 ansRecord.setVersion(robotExecuteTmp.getAppVersion());
             }
+
         }
     }
 
+
     @Override
     public AppResponse<?> updateRobotByPull(String robotId) throws NoLoginException {
-        // 更新robotID机器人的appVersion,name,updatetime,obtained,
+        //更新robotID机器人的appVersion,name,updatetime,obtained,
         String userId = UserUtils.nowUserId();
         String tenantId = TenantUtils.getTenantId();
         RobotExecute robotExecute = robotExecuteDao.queryByRobotId(robotId, userId, tenantId);
         if (robotExecute == null) {
             return AppResponse.error(ErrorCodeEnum.E_PARAM, "机器人不存在");
         }
-        // 查询是否已退出市场
+        //查询是否已退出市场
         String marketId = robotExecute.getMarketId();
         if (StringUtils.isBlank(marketId)) {
             return AppResponse.error(ErrorCodeEnum.E_PARAM, "市场信息缺失");
         }
-
-        // 查询市场中机器人的版本信息
+        AppMarketUser appMarketUser = appMarketUserDao.getMarketUser(marketId, userId);
+        if (null == appMarketUser) {
+            return AppResponse.error(ErrorCodeEnum.E_PARAM, "当前未加入该机器人所在的团队市场，且点击后按钮消失");
+        }
+        //查询市场中机器人的版本信息
         RobotVersionDto robotVersion = robotVersionDao.getLatestRobotVersion(robotExecute.getAppId());
         if (null == robotVersion) {
             return AppResponse.error(ErrorCodeEnum.E_PARAM, "应用市场机器人不存在");
@@ -254,6 +276,7 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
         robotExecuteDao.updateRobotByPull(robotExecute);
         return AppResponse.success(true);
     }
+
 
     @Override
     public AppResponse<?> deleteRobotRes(String robotId) throws NoLoginException {
@@ -338,6 +361,10 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
             if (robotExecute.getDataSource().equals("create")) {
                 // 如果是自己获取的, 采用启用版本
                 robotVersion = robotVersionDao.getEnableVersion(robotId, userId, tenantId);
+            } else if (robotExecute.getDataSource().equals("market")) {
+                // 如果是市场中获取的，用溯源的最新版本
+                AppMarketResource appResource = appResourceDao.getAppResourceRegardlessDel(robotExecute.getAppId(), robotExecute.getMarketId());
+                robotVersion = robotVersionDao.getLatestVersionRegardlessDel(appResource.getRobotId());
             } else if (robotExecute.getDataSource().equals("deploy")) {
                 String oriRobotId = robotExecute.getAppId();
                 robotVersion = robotVersionDao.getDeployEnableVersion(oriRobotId, tenantId);
@@ -377,12 +404,12 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
 
             List<RobotExecute> queryInfoList = getQueryInfo(appIdList, robotIdList);
 
-            List<RobotExecute> robotExecuteList =
-                    robotExecuteDao.getExeByAppIdsRobotIds(userId, tenantId, queryInfoList);
+            List<RobotExecute> robotExecuteList = robotExecuteDao.getExeByAppIdsRobotIds(userId, tenantId, queryInfoList);
 
             List<ExeUpdateCheckVo> resVoList = getExeUpdateCheckVos(robotExecuteList);
 
             return AppResponse.success(resVoList);
+
         }
         return response;
     }
@@ -403,9 +430,28 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
         return robotExecuteList;
     }
 
-    private void setVersionNCreatorInfo(
-            RobotExecute robotExecute, ExecuteDetailVo resVo, String dataSource, String userId, String tenantId)
-            throws Exception {
+    private static List<ExeUpdateCheckVo> getExeUpdateCheckVos(List<RobotExecute> robotExecuteList) {
+        List<ExeUpdateCheckVo> resVoList = new ArrayList<>();
+        for (RobotExecute robotExecute : robotExecuteList) {
+            Integer updateStatus = 0;
+            if (robotExecute.getResourceStatus() != null) {
+                updateStatus = robotExecute.getResourceStatus().equals("toUpdate") ? 1 : 0;
+            } else {
+                updateStatus = 0;
+            }
+            ExeUpdateCheckVo exeUpdateCheckVo = new ExeUpdateCheckVo();
+
+            exeUpdateCheckVo.setAppId(robotExecute.getAppId());
+            exeUpdateCheckVo.setRobotId(robotExecute.getRobotId());
+            exeUpdateCheckVo.setUpdateStatus(updateStatus);
+
+            resVoList.add(exeUpdateCheckVo);
+        }
+        return resVoList;
+    }
+
+    private void setVersionNCreatorInfo(RobotExecute robotExecute, ExecuteDetailVo resVo, String dataSource,
+                                        String userId, String tenantId) throws Exception {
 
         if (dataSource.equals("create")) resVo.setSourceName("本地");
         else if (dataSource.equals("market")) resVo.setSourceName("企业市场");
@@ -413,12 +459,12 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
 
         List<VersionInfo> versionInfoList = new ArrayList<>();
 
+
         switch (dataSource) {
             case "create": // 自己创建的应用
 
                 // 版本信息
-                List<RobotVersion> robotVersionList =
-                        robotVersionDao.getAllVersion(robotExecute.getRobotId(), userId, tenantId);
+                List<RobotVersion> robotVersionList = robotVersionDao.getAllVersion(robotExecute.getRobotId(), userId, tenantId);
                 for (RobotVersion robotVersion : robotVersionList) {
                     VersionInfo versionInfo = new VersionInfo();
 
@@ -434,6 +480,35 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
 
                 resVo.setCreateTime(robotExecute.getCreateTime());
                 resVo.setCreatorName(creatorName);
+                break;
+
+            case "market": // 市场获取的应用
+                String appId = robotExecute.getAppId();
+                String marketId = robotExecute.getMarketId();
+                Integer version = robotExecute.getAppVersion(); // 获取时的AppVersion
+
+                List<AppMarketVersion> appVersionList = appVersionDao.getAllAppVersionRegardlessDel(appId, marketId);
+                AppMarketResource appResource = appResourceDao.getAppResourceRegardlessDel(appId, marketId);
+
+                for (AppMarketVersion appVersionTmp : appVersionList) {
+                    VersionInfo versionInfo = new VersionInfo();
+
+                    Integer appVersionNumTmp = appVersionTmp.getAppVersion();
+                    Integer online = 0;
+                    online = appVersionNumTmp.equals(version) ? 1 : 0;
+
+                    versionInfo.setVersionNum(appVersionNumTmp);
+                    versionInfo.setCreateTime(appVersionTmp.getCreateTime());
+                    versionInfo.setOnline(online);
+
+                    versionInfoList.add(versionInfo);
+                }
+
+                // 创建者信息
+                String creatorName1 = UserUtils.getRealNameById(appResource.getCreatorId());
+
+                resVo.setCreateTime(appResource.getCreateTime());
+                resVo.setCreatorName(creatorName1);
                 break;
 
             case "deploy":
@@ -486,7 +561,8 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
         Set<String> taskIdNotInList = new HashSet<>();
 
         for (String taskId : taskIdList) {
-            List<TaskRobotCountDto> collect = taskRobotCountDtoList.stream()
+            List<TaskRobotCountDto> collect = taskRobotCountDtoList
+                    .stream()
                     .filter(taskRobotCountDto -> taskRobotCountDto.getTaskId().equals(taskId))
                     .collect(Collectors.toList());
 
@@ -502,15 +578,14 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
         if (!i.equals(taskIdNotInList.size())) throw new Exception();
     }
 
-    private DelExecuteRobotVo getDeleteRobotVo(
-            RobotExecute robotExecute, List<ScheduleTaskRobot> taskRobotList, String robotId) {
+    private DelExecuteRobotVo getDeleteRobotVo(RobotExecute robotExecute, List<ScheduleTaskRobot> taskRobotList, String robotId) {
         DelExecuteRobotVo resVo = new DelExecuteRobotVo();
         resVo.setRobotId(robotId);
 
         // 1 : 执行器中出现
         if (robotExecute != null && (CollectionUtils.isEmpty(taskRobotList))) resVo.setSituation(1);
 
-        // 3 : 执行器 被计划任务引用
+            // 3 : 执行器 被计划任务引用
         else {
             resVo.setSituation(3);
             setDelExecuteRobotVo(resVo, taskRobotList, robotId);
@@ -523,8 +598,7 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
         List<TaskReferInfo> taskReferInfoList = new ArrayList<>();
 
         // 获取所有引用该执行器的taskId
-        List<String> taskIdList =
-                taskRobotList.stream().map(ScheduleTaskRobot::getTaskId).collect(Collectors.toList());
+        List<String> taskIdList = taskRobotList.stream().map(ScheduleTaskRobot::getTaskId).collect(Collectors.toList());
 
         // 查询数据
         List<ScheduleTaskRobot> taskRobots = scheduleTaskRobotDao.getScheduleRobotByTaskIds(taskIdList);
@@ -534,7 +608,8 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
             TaskReferInfo taskReferInfo = new TaskReferInfo();
 
             // 筛选出当前taskId的taskRobot
-            List<ScheduleTaskRobot> taskRobotsTmp = taskRobots.stream()
+            List<ScheduleTaskRobot> taskRobotsTmp = taskRobots
+                    .stream()
                     .filter(taskRobot -> taskRobot.getTaskId().equals(taskId))
                     .collect(Collectors.toList());
 
@@ -564,9 +639,17 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
         resVo.setTaskReferInfoList(taskReferInfoList);
     }
 
+
     @Override
-    public AppResponse<List<RobotExecuteByNameNDeptVo>> getRobotExecuteList(RobotExecuteByNameNDeptDto queryDto)
-            throws NoLoginException {
+    public List<HisBaseDto> countRobotTotalNumByDate(String endOfDay, List<DeptUser> userIdList) {
+        if (StringUtils.isBlank(endOfDay) || CollectionUtils.isEmpty(userIdList)) {
+            return new ArrayList<>();
+        }
+        return robotExecuteDao.countRobotTotalNumByDate(endOfDay, userIdList);
+    }
+
+    @Override
+    public AppResponse<List<RobotExecuteByNameNDeptVo>> getRobotExecuteList(RobotExecuteByNameNDeptDto queryDto) throws NoLoginException {
         String tenantId = TenantUtils.getTenantId();
         if (tenantId == null) throw new ServiceException(ErrorCodeEnum.E_PARAM_CHECK.getCode(), "缺少租户信息");
         queryDto.setTenantId(tenantId);
@@ -574,6 +657,17 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
         if (CollectionUtils.isEmpty(resVoList)) return AppResponse.success(Collections.EMPTY_LIST);
         return AppResponse.success(resVoList);
     }
+
+
+    @Override
+    public AppResponse<List<RobotNameDto>> getRobotNameListByName(String robotName, String deptId) {
+        BaseDto baseDto = new BaseDto();
+        baseDto.setDeptId(deptId);
+        hisBaseService.setDataAuth(baseDto);
+        List<RobotNameDto> robotList = robotExecuteDao.getRobotNameListByName(robotName, baseDto);
+        return AppResponse.success(robotList);
+    }
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -583,87 +677,109 @@ public class RobotExecuteServiceImpl extends ServiceImpl<RobotExecuteDao, RobotE
         String newOwnerId = transferRobotDto.getUserId();
         // 刪除原先关联的计划任务
         for (String robotId : robotIdList) {
-            RobotExecute oldRobotExecute = robotExecuteDao.selectOne(new LambdaQueryWrapper<RobotExecute>()
-                    .eq(RobotExecute::getRobotId, robotId)
+            RobotExecute oldRobotExecute = robotExecuteDao.selectOne(new LambdaQueryWrapper<RobotExecute>().eq(RobotExecute::getRobotId, robotId)
                     .eq(RobotExecute::getDeleted, 0)
                     .last("limit 1"));
-            List<ScheduleTaskRobot> taskRobotList = scheduleTaskRobotDao.getAllTaskRobot(
-                    robotId, oldRobotExecute.getCreatorId(), oldRobotExecute.getTenantId());
-            List<String> taskIdList =
-                    taskRobotList.stream().map(ScheduleTaskRobot::getTaskId).collect(Collectors.toList());
+            List<ScheduleTaskRobot> taskRobotList = scheduleTaskRobotDao.getAllTaskRobot(robotId, oldRobotExecute.getCreatorId(), oldRobotExecute.getTenantId());
+            List<String> taskIdList = taskRobotList.stream().map(ScheduleTaskRobot::getTaskId).collect(Collectors.toList());
             if (!taskIdList.isEmpty()) {
-                scheduleTaskRobotDao.taskRobotDelete(
-                        robotId, oldRobotExecute.getCreatorId(), oldRobotExecute.getTenantId(), taskIdList);
+                scheduleTaskRobotDao.taskRobotDelete(robotId, oldRobotExecute.getCreatorId(), oldRobotExecute.getTenantId(), taskIdList);
                 // 删除taskRobot后处理
                 taskRobotDeleteAfter(taskIdList);
             }
         }
 
-        // 转移robot_design
-        robotDesignDao.update(
-                null,
+        //转移robot_design
+        robotDesignDao.update(null,
                 new LambdaUpdateWrapper<RobotDesign>()
                         .in(RobotDesign::getRobotId, robotIdList)
                         .eq(RobotDesign::getDeleted, 0)
-                        .set(RobotDesign::getCreatorId, newOwnerId));
-        // 转移robot_execute
-        robotExecuteDao.update(
-                null,
+                        .set(RobotDesign::getCreatorId, newOwnerId)
+        );
+        //转移robot_execute
+        robotExecuteDao.update(null,
                 new LambdaUpdateWrapper<RobotExecute>()
                         .in(RobotExecute::getRobotId, robotIdList)
                         .eq(RobotExecute::getDeleted, 0)
-                        .set(RobotExecute::getCreatorId, newOwnerId));
-        // 转移机器人版本
-        robotVersionDao.update(
-                null,
+                        .set(RobotExecute::getCreatorId, newOwnerId)
+        );
+        //转移机器人版本
+        robotVersionDao.update(null,
                 new LambdaUpdateWrapper<RobotVersion>()
                         .in(RobotVersion::getRobotId, robotIdList)
                         .eq(RobotVersion::getDeleted, 0)
-                        .set(RobotVersion::getCreatorId, newOwnerId));
+                        .set(RobotVersion::getCreatorId, newOwnerId)
+        );
+        //todo 转移市场中的应用和版本
+        appMarketResourceDao.update(null,
+                new LambdaUpdateWrapper<AppMarketResource>()
+                        .in(AppMarketResource::getRobotId, robotIdList)
+                        .eq(AppMarketResource::getDeleted, 0)
+                        .set(AppMarketResource::getCreatorId, newOwnerId)
+        );
+        //获取appId列表
+        List<String> appIdList = appMarketResourceDao.selectList(
+                new LambdaQueryWrapper<AppMarketResource>()
+                        .in(AppMarketResource::getRobotId, robotIdList)
+                        .eq(AppMarketResource::getDeleted, 0)
+        ).stream().map(AppMarketResource::getAppId).collect(Collectors.toList());
 
-        // 转移流程、图像、分组等，todo后期解除流程、图像、分组等的creatorId，只用robotId和机器人关联
-        cElementDao.update(
-                null,
+        appIdList.removeIf(Objects::isNull);
+
+        if (!CollectionUtils.isEmpty(appIdList)) {
+            //转移市场中的应用和版本
+            appMarketVersionDao.update(null,
+                    new LambdaUpdateWrapper<AppMarketVersion>()
+                            .in(AppMarketVersion::getAppId, appIdList)
+                            .eq(AppMarketVersion::getDeleted, 0)
+                            .set(AppMarketVersion::getCreatorId, newOwnerId)
+            );
+        }
+
+        //转移流程、图像、分组等，todo后期解除流程、图像、分组等的creatorId，只用robotId和机器人关联
+        cElementDao.update(null,
                 new LambdaUpdateWrapper<CElement>()
                         .in(CElement::getRobotId, robotIdList)
                         .eq(CElement::getDeleted, 0)
-                        .set(CElement::getCreatorId, newOwnerId));
-        cGlobalVarDao.update(
-                null,
+                        .set(CElement::getCreatorId, newOwnerId)
+        );
+        cGlobalVarDao.update(null,
                 new LambdaUpdateWrapper<CGlobalVar>()
                         .in(CGlobalVar::getRobotId, robotIdList)
                         .eq(CGlobalVar::getDeleted, 0)
-                        .set(CGlobalVar::getCreatorId, newOwnerId));
-        cGroupDao.update(
-                null,
+                        .set(CGlobalVar::getCreatorId, newOwnerId)
+        );
+        cGroupDao.update(null,
                 new LambdaUpdateWrapper<CGroup>()
                         .in(CGroup::getRobotId, robotIdList)
                         .eq(CGroup::getDeleted, 0)
-                        .set(CGroup::getCreatorId, newOwnerId));
-        cModuleDao.update(
-                null,
+                        .set(CGroup::getCreatorId, newOwnerId)
+        );
+        cModuleDao.update(null,
                 new LambdaUpdateWrapper<CModule>()
                         .in(CModule::getRobotId, robotIdList)
                         .eq(CModule::getDeleted, 0)
-                        .set(CModule::getCreatorId, newOwnerId));
-        cParamDao.update(
-                null,
+                        .set(CModule::getCreatorId, newOwnerId)
+        );
+        cParamDao.update(null,
                 new LambdaUpdateWrapper<CParam>()
                         .in(CParam::getRobotId, robotIdList)
                         .eq(CParam::getDeleted, 0)
-                        .set(CParam::getCreatorId, newOwnerId));
-        cProcessDao.update(
-                null,
+                        .set(CParam::getCreatorId, newOwnerId)
+        );
+        cProcessDao.update(null,
                 new LambdaUpdateWrapper<CProcess>()
                         .in(CProcess::getRobotId, robotIdList)
                         .eq(CProcess::getDeleted, 0)
-                        .set(CProcess::getCreatorId, newOwnerId));
-        cRequireDao.update(
-                null,
+                        .set(CProcess::getCreatorId, newOwnerId)
+        );
+        cRequireDao.update(null,
                 new LambdaUpdateWrapper<CRequire>()
                         .in(CRequire::getRobotId, robotIdList)
                         .eq(CRequire::getDeleted, 0)
-                        .set(CRequire::getCreatorId, newOwnerId));
+                        .set(CRequire::getCreatorId, newOwnerId)
+        );
         return AppResponse.success(robotIdList);
     }
+
 }
