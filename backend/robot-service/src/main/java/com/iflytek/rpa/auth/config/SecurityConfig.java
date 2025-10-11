@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -69,17 +70,29 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .and();
 
         // set permissions on endpoints
-        http.authorizeRequests(authorize -> authorize
-                // Our public endpoints
-                .mvcMatchers("/api/redirect-url", "/api/signin")
-                .permitAll()
-                // Our private endpoints
-                .mvcMatchers("/api/**")
-                .authenticated());
+        http.authorizeRequests()
+                .mvcMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .mvcMatchers("/user/api/redirect-url", "/user/api/signin", "/user/api/refresh/token").permitAll()
+                .mvcMatchers("/**").authenticated()
+                ;
 
         // set unauthorized requests exception handler
-        http = http.exceptionHandling()
-                .authenticationEntryPoint((request, response, ex) -> ResponseUtils.fail(response, "unauthorized"))
+        http = http
+                .exceptionHandling()
+                .authenticationEntryPoint(
+                        (request, response, ex) -> {
+                            logger.warn("Unauthorized access attempt to: {} {} - Reason: {}",
+                                    request.getMethod(), request.getRequestURI(), ex.getMessage());
+                            ResponseUtils.fail(response, "unauthorized");
+                        }
+                )
+                .accessDeniedHandler(
+                        (request, response, ex) -> {
+                            logger.warn("Access denied for: {} {} - Reason: {}",
+                                    request.getMethod(), request.getRequestURI(), ex.getMessage());
+                            ResponseUtils.fail(response, "access denied");
+                        }
+                )
                 .and();
 
         // set logout handler
@@ -87,30 +100,29 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .logoutUrl("/api/logout")
                 .addLogoutHandler(new LogoutHandler() {
                     @Override
-                    public void logout(
-                            HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-                        logger.info("Logout handler called - Authentication: {}", authentication);
+                    public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+                        try {
+                            logger.info("Logout handler called - Authentication: {}", authentication);
+                            //拿到用户信息
+                            User user = null;
+                            if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+                                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                                user = userDetails.getUser();
+                            }
+                            //将token加入黑名单（redis存储），请求前由filter校验
 
-                        // 拿到用户信息
-                        User user = null;
-                        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
-                            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-                            user = userDetails.getUser();
-                        }
+                            // 清除Spring Security上下文
+                            SecurityContextHolder.clearContext();
 
-                        // redis删token，key为CASDOOR_CURRENT_USER_TOKEN
-                        if (Objects.nonNull(user)) {
-                            String redisKey = AuthEnum.CASDOOR_CURRENT_USER_TOKEN.getCode() + "_" + user.name;
-                            RedisUtils.redisTemplate.delete(redisKey);
-                        }
+                            // 记录登出日志
+                            if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+                                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                                logger.info("User {} logged out successfully", userDetails.getUsername());
+                            }
 
-                        // 清除Spring Security上下文
-                        SecurityContextHolder.clearContext();
-
-                        // 记录登出日志
-                        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
-                            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-                            logger.info("User {} logged out successfully", userDetails.getUsername());
+                        } catch (Exception e) {
+                            logger.error("Error in logout handler", e);
+                            throw new RuntimeException("Logout handler failed", e);
                         }
                     }
                 })

@@ -65,11 +65,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 userDetails, null, AuthorityUtils.createAuthorityList("ROLE_casdoor"));
 
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-        // 将token存到redis中，key为CASDOOR_CURRENT_USER_TOKEN，value为token
-        if (Objects.nonNull(user)) {
-            String redisKey = AuthEnum.CASDOOR_CURRENT_USER_TOKEN.getCode() + "_" + user.name;
-            RedisUtils.redisTemplate.opsForValue().set(redisKey, token);
-        }
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         chain.doFilter(request, response);
