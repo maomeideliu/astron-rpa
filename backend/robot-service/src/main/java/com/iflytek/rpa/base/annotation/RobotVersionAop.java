@@ -1,20 +1,19 @@
 package com.iflytek.rpa.base.annotation;
 
-import static com.iflytek.rpa.robot.constants.RobotConstant.*;
-
 import com.iflytek.rpa.base.entity.dto.BaseDto;
+import com.iflytek.rpa.market.dao.AppMarketResourceDao;
+import com.iflytek.rpa.market.entity.AppMarketResource;
+import com.iflytek.rpa.market.entity.MarketDto;
 import com.iflytek.rpa.robot.dao.RobotExecuteDao;
 import com.iflytek.rpa.robot.dao.RobotVersionDao;
 import com.iflytek.rpa.robot.entity.RobotExecute;
 import com.iflytek.rpa.robot.entity.RobotVersion;
 import com.iflytek.rpa.starter.exception.NoDataException;
 import com.iflytek.rpa.starter.exception.NoLoginException;
-import com.iflytek.rpa.starter.utils.response.AppResponse;
-import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
 import com.iflytek.rpa.utils.TenantUtils;
 import com.iflytek.rpa.utils.UserUtils;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
+import com.iflytek.rpa.starter.utils.response.AppResponse;
+import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -23,6 +22,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.List;
+
+import static com.iflytek.rpa.robot.constants.RobotConstant.*;
 
 @Aspect
 @Component
@@ -35,9 +40,11 @@ public class RobotVersionAop {
     @Autowired
     private RobotVersionDao robotVersionDao;
 
+    @Autowired
+    private AppMarketResourceDao appMarketResourceDao;
+
     @Around("@annotation(robotVersionAnnotation)")
-    public Object process(ProceedingJoinPoint joinPoint, RobotVersionAnnotation robotVersionAnnotation)
-            throws Throwable {
+    public Object process(ProceedingJoinPoint joinPoint, RobotVersionAnnotation robotVersionAnnotation) throws Throwable {
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         Object[] args = joinPoint.getArgs();
         Parameter[] parameters = method.getParameters();
@@ -51,16 +58,9 @@ public class RobotVersionAop {
             Object argValue = args[i];
             if (argValue.getClass().equals(robotVersionAnnotation.clazz())) {
                 try {
-                    robotId = argValue.getClass()
-                            .getMethod("getRobotId")
-                            .invoke(argValue)
-                            .toString();
-                    mode = argValue.getClass()
-                            .getMethod("getMode")
-                            .invoke(argValue)
-                            .toString();
-                    robotVersion = (Integer)
-                            argValue.getClass().getMethod("getRobotVersion").invoke(argValue);
+                    robotId = argValue.getClass().getMethod("getRobotId").invoke(argValue).toString();
+                    mode = argValue.getClass().getMethod("getMode").invoke(argValue).toString();
+                    robotVersion = (Integer) argValue.getClass().getMethod("getRobotVersion").invoke(argValue);
                     try {
                         getRobotIdAndVersion(robotId, robotVersion, mode, baseDto);
                     } catch (NoDataException e) {
@@ -69,9 +69,7 @@ public class RobotVersionAop {
                     // 修改 robotId 的值
                     argValue.getClass().getMethod("setRobotId", String.class).invoke(argValue, baseDto.getRobotId());
                     // 修改 version 的值
-                    argValue.getClass()
-                            .getMethod("setRobotVersion", Integer.class)
-                            .invoke(argValue, baseDto.getRobotVersion());
+                    argValue.getClass().getMethod("setRobotVersion", Integer.class).invoke(argValue, baseDto.getRobotVersion());
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -94,8 +92,7 @@ public class RobotVersionAop {
      * @throws NoDataException
      * @throws NoLoginException
      */
-    private void getRobotIdAndVersion(String robotId, Integer robotVersion, String mode, BaseDto baseDto)
-            throws NoDataException, NoLoginException {
+    private void getRobotIdAndVersion(String robotId, Integer robotVersion, String mode, BaseDto baseDto) throws NoDataException, NoLoginException {
         if (null != robotVersion) {
             baseDto.setRobotVersion(robotVersion);
             baseDto.setRobotId(robotId);
@@ -115,14 +112,14 @@ public class RobotVersionAop {
             baseDto.setRobotId(robotId);
             baseDto.setRobotVersion(robotVersion);
         } else {
-            // 如果是执行器或计划任务，分为自己创建的（查启用版本），获取的（查appVersion）
+            //如果是执行器或计划任务，分为自己创建的（查启用版本），获取的（查appVersion）
             RobotExecute robotExecute = robotExecuteDao.queryByRobotId(robotId, userId, tenantId);
             if (null == robotExecute) {
                 throw new NoDataException("执行器机器人不存在");
             }
             String dataSource = robotExecute.getDataSource();
             if (CREATE.equals(dataSource)) {
-                // 自己创建的，查启用版本
+                //自己创建的，查启用版本
                 RobotVersion version = robotVersionDao.getOriEnableVersion(robotId, userId, tenantId);
                 if (null == version || null == version.getVersion()) {
                     throw new NoDataException("机器人无启用版本信息");
@@ -131,19 +128,26 @@ public class RobotVersionAop {
                 baseDto.setRobotVersion(version.getVersion());
 
             } else if (MARKET.equals(dataSource)) {
-                // 市场获取的，查appVersion和作者的robotId
+                //市场获取的，查appVersion和作者的robotId
                 String marketId = robotExecute.getMarketId();
                 String appId = robotExecute.getAppId();
-
+                AppMarketResource appMarketResource = appMarketResourceDao.getAppInfoByAppId(new MarketDto(tenantId, marketId, appId));
+                if (null == appMarketResource || null == appMarketResource.getRobotId()) {
+                    throw new NoDataException("该机器人关联的市场应用信息缺失");
+                }
+                baseDto.setRobotId(appMarketResource.getRobotId());
                 if (null == robotExecute.getAppVersion()) {
                     throw new NoDataException("该机器人关联的应用版本信息缺失");
                 }
                 baseDto.setRobotVersion(robotExecute.getAppVersion());
             } else if (DEPLOY.equals(dataSource)) {
-                // 部署的，appId对应robotId,appVersion对应robotVersion
+                //部署的，appId对应robotId,appVersion对应robotVersion
                 baseDto.setRobotId(robotExecute.getAppId());
                 baseDto.setRobotVersion(robotExecute.getAppVersion());
             }
+
         }
     }
+
+
 }
