@@ -2,11 +2,14 @@ package com.iflytek.rpa.auth.controller;
 
 import com.iflytek.rpa.auth.entity.CustomUserDetails;
 import com.iflytek.rpa.auth.entity.Result;
+import com.iflytek.rpa.auth.entity.vo.TokenResponse;
 import com.iflytek.rpa.auth.service.AuthExtendService;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.utils.TenantUtils;
 import com.iflytek.rpa.utils.UserUtils;
 import java.util.List;
+
+import org.apache.oltu.oauth2.client.response.OAuthJSONAccessTokenResponse;
 import org.casbin.casdoor.entity.Group;
 import org.casbin.casdoor.entity.Permission;
 import org.casbin.casdoor.entity.User;
@@ -55,8 +58,13 @@ public class UserController {
     @PostMapping("/api/signin")
     public Result signin(@RequestParam("code") String code, @RequestParam("state") String state) {
         try {
-            String token = authService.getOAuthToken(code, state);
-            return Result.success(token);
+            OAuthJSONAccessTokenResponse oAuthTokenResponse = authExtendService.getOAuthTokenResponse(code, state);
+            String accessToken = oAuthTokenResponse.getAccessToken();
+            String refreshToken = oAuthTokenResponse.getRefreshToken();
+
+            // 创建包含accessToken和refreshToken的响应对象
+            TokenResponse tokenResponse = new TokenResponse(accessToken, refreshToken);
+            return Result.success(tokenResponse);
         } catch (AuthException exception) {
             logger.error("casdoor auth exception", exception);
             return Result.failure(exception.getMessage());
