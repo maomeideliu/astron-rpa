@@ -15,7 +15,6 @@ import com.iflytek.rpa.market.dao.AppMarketVersionDao;
 import com.iflytek.rpa.market.entity.AppMarketResource;
 import com.iflytek.rpa.market.entity.AppMarketUser;
 import com.iflytek.rpa.market.entity.AppMarketVersion;
-import com.iflytek.rpa.market.service.AppApplicationService;
 import com.iflytek.rpa.monitor.entity.DeptUser;
 import com.iflytek.rpa.monitor.entity.dto.HisBaseDto;
 import com.iflytek.rpa.robot.dao.RobotDesignDao;
