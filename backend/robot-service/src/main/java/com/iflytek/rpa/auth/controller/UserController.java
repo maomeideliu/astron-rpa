@@ -71,6 +71,22 @@ public class UserController {
         }
     }
 
+    @PostMapping("/api/refresh/token")
+    public Result refreshToken(@RequestParam("refreshToken") String refreshToken, @RequestParam("scope") String scope) {
+        try {
+            OAuthJSONAccessTokenResponse oAuthTokenResponse = authExtendService.refreshToken(refreshToken, scope);
+            String accessToken = oAuthTokenResponse.getAccessToken();
+            String newRefreshToken = oAuthTokenResponse.getRefreshToken();
+
+            // 创建包含accessToken和新refreshToken的响应对象
+            TokenResponse tokenResponse = new TokenResponse(accessToken, newRefreshToken);
+            return Result.success(tokenResponse);
+        } catch (AuthException exception) {
+            logger.error("casdoor auth exception", exception);
+            return Result.failure(exception.getMessage());
+        }
+    }
+
     @GetMapping("/api/userinfo")
     public Result userinfo(Authentication authentication) {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();

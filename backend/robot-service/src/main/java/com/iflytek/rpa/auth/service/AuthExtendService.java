@@ -59,4 +59,21 @@ public class AuthExtendService extends AuthService {
             throw new AuthException("Cannot get OAuth token.", e);
         }
     }
+
+    public OAuthJSONAccessTokenResponse refreshToken(String refreshToken, String scope) {
+        try {
+            OAuthClientRequest oAuthClientRequest = OAuthClientRequest
+                    .tokenLocation(String.format("%s/api/login/oauth/refresh_token", config.endpoint))
+                    .setGrantType(GrantType.REFRESH_TOKEN)
+                    .setClientId(config.clientId)
+                    .setClientSecret(config.clientSecret)
+                    .setRefreshToken(refreshToken)
+                    .setScope(scope)
+                    .buildQueryMessage();
+            OAuthClient oAuthClient = new OAuthClient(new URLConnectionClient());
+            return oAuthClient.accessToken(oAuthClientRequest, OAuth.HttpMethod.POST);
+        } catch (OAuthSystemException | OAuthProblemException e) {
+            throw new AuthException("Cannot refresh OAuth token.", e);
+        }
+    }
 }
