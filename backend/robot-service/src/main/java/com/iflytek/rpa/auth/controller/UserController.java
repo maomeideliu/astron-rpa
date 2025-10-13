@@ -40,6 +40,9 @@ public class UserController {
     private final AuthExtendService authExtendService;
     private final String redirectUrl;
 
+    @Value("${casdoor.endpoint}")
+    private String endPoint;
+
     public UserController(
             AuthService authService,
             AuthExtendService authExtendService,
@@ -53,7 +56,7 @@ public class UserController {
     public Result getRedirectUrl() {
         try {
             String signinUrl = authExtendService.getCustomSigninUrl(redirectUrl);
-            return Result.success(signinUrl);
+            return Result.success(endPoint + signinUrl);
         } catch (AuthException exception) {
             logger.error("casdoor auth exception", exception);
             return Result.failure(exception.getMessage());
