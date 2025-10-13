@@ -43,6 +43,10 @@ public class UserController {
     @Value("${casdoor.endpoint}")
     private String endPoint;
 
+    // 用于外部访问的endpoint（返回给前端的登录地址）
+    @Value("${casdoor.external-endpoint}")
+    private String externalEndPoint;
+
     public UserController(
             AuthService authService,
             AuthExtendService authExtendService,
@@ -56,7 +60,8 @@ public class UserController {
     public Result getRedirectUrl() {
         try {
             String signinUrl = authExtendService.getCustomSigninUrl(redirectUrl);
-            return Result.success(endPoint + signinUrl);
+            // 使用外部endpoint返回给前端，确保前端能访问到正确的地址
+            return Result.success(externalEndPoint + signinUrl);
         } catch (AuthException exception) {
             logger.error("casdoor auth exception", exception);
             return Result.failure(exception.getMessage());
