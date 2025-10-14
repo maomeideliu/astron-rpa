@@ -5,17 +5,14 @@ from pathlib import Path
 
 import uvicorn
 from astronverse.baseline.config.config import load_config
-from fastapi import FastAPI
-
 from astronverse.scheduler.apis import route
 from astronverse.scheduler.config import Config
-from astronverse.scheduler.core.schduler.init import linux_env_check, repair_pywin32_dependence
+from astronverse.scheduler.core.schduler.init import linux_env_check
 from astronverse.scheduler.core.server import ServerManager
 from astronverse.scheduler.core.servers.async_server import (
     CheckPickProcessAliveServer,
     CheckStartPidExitsServer,
     RpaSchedulerAsyncServer,
-    TerminalAsyncServer,
 )
 from astronverse.scheduler.core.servers.core_server import (
     RpaBrowserConnectorServer,
@@ -24,6 +21,7 @@ from astronverse.scheduler.core.servers.core_server import (
 from astronverse.scheduler.core.svc import get_svc
 from astronverse.scheduler.logger import logger
 from astronverse.scheduler.utils.utils import check_port
+from fastapi import FastAPI
 
 # 0. app实例化，并做初始化
 app = FastAPI()
@@ -59,14 +57,9 @@ def start():
         server_mg.register(RpaRouteServer(svc))
         server_mg.register(RpaBrowserConnectorServer(svc))
         server_mg.register(RpaSchedulerAsyncServer(svc))
-        server_mg.register(TerminalAsyncServer(svc))
-        # server_mg.register(AtomicUploadAsyncServer(svc))
         server_mg.register(CheckPickProcessAliveServer(svc))
         server_mg.register(CheckStartPidExitsServer(svc))
-
         server_mg.register(svc.trigger_server)
-        if svc.vnc_server:
-            server_mg.register(svc.vnc_server)
         server_mg.run()
 
         # 5. 等待本地网关加载完成，并注册服务
