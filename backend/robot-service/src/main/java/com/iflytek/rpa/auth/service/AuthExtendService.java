@@ -1,8 +1,13 @@
 package com.iflytek.rpa.auth.service;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.oltu.oauth2.client.OAuthClient;
 import org.apache.oltu.oauth2.client.URLConnectionClient;
 import org.apache.oltu.oauth2.client.request.OAuthClientRequest;
@@ -14,6 +19,7 @@ import org.apache.oltu.oauth2.common.message.types.GrantType;
 import org.casbin.casdoor.config.Config;
 import org.casbin.casdoor.exception.AuthException;
 import org.casbin.casdoor.service.AuthService;
+import org.casbin.casdoor.util.http.CasdoorResponse;
 import org.springframework.stereotype.Service;
 
 /**
@@ -92,5 +98,20 @@ public class AuthExtendService extends AuthService {
         } catch (OAuthSystemException | OAuthProblemException e) {
             throw new AuthException("Cannot refresh OAuth token.", e);
         }
+    }
+
+    /**
+     * casdoor的token登出接口
+     * @param accessToken
+     * @return
+     * @throws IOException
+     */
+    public CasdoorResponse<String, Object> logout(String accessToken) throws IOException {
+        Map<String, String> params = new HashMap<>();
+        params.put("id_token_hint", accessToken);
+        params.put("state", config.applicationName);
+        
+        CasdoorResponse<String, Object> resp = doGet("logout", params, new TypeReference<CasdoorResponse<String, Object>>() {});
+        return resp;
     }
 }

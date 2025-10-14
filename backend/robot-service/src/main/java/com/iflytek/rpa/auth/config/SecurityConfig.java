@@ -1,6 +1,7 @@
 package com.iflytek.rpa.auth.config;
 
 import com.iflytek.rpa.auth.filter.SessionAuthenticationFilter;
+import com.iflytek.rpa.auth.service.AuthExtendService;
 import com.iflytek.rpa.auth.utils.ResponseUtils;
 import com.iflytek.rpa.auth.utils.TokenManager;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
@@ -8,8 +9,10 @@ import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.casbin.casdoor.entity.User;
+import org.casbin.casdoor.util.http.CasdoorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,6 +41,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private final SessionAuthenticationFilter sessionAuthenticationFilter;
     private final String frontendUrl;
     private final String casdoorUrl;
+
+    @Autowired
+    private AuthExtendService authExtendService;
 
     public SecurityConfig(
             SessionAuthenticationFilter sessionAuthenticationFilter,
@@ -100,6 +106,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                             String userName = user != null ? user.name : "未知用户";
 
                             if (user != null) {
+
+                                //调用logout接口将对该用户在casdoor颁发的token过期
+                                String accessToken = TokenManager.getAccessToken(user.name);
+                                CasdoorResponse<String, Object> logoutResp = authExtendService.logout(accessToken);
+                                if (logoutResp != null && logoutResp.getStatus().equals("ok")){
+                                    logger.info("用户 {} 的casdoor端的token已无效化", user.name);
+                                } else {
+                                    logger.warn("用户 {} 的casdoor端的token登出失败: {}", user.name, logoutResp != null ? logoutResp.getMsg() : "未知错误");
+                                }
+
+                                //清除redis中用户对应的token
                                 TokenManager.clearTokens(user.name);
                                 logger.info("用户 {} 的服务端token已清除", user.name);
                             }

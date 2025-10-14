@@ -16,6 +16,7 @@ import org.casbin.casdoor.entity.Permission;
 import org.casbin.casdoor.entity.User;
 import org.casbin.casdoor.exception.AuthException;
 import org.casbin.casdoor.service.AuthService;
+import org.casbin.casdoor.util.http.CasdoorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -104,10 +105,32 @@ public class UserController {
     }
 
     /**
-     * 注意：登出请求会被Spring Security的LogoutHandler拦截处理
-     * 实际的登出逻辑在SecurityConfig.java中的LogoutHandler中实现
-     * 这里不需要重复的@PostMapping("/sign/out")方法
+     * Casdoor token登出接口
+     * @param accessToken Casdoor颁发的accessToken
+     * @return 登出结果
      */
+    @PostMapping("/logout")
+    public Result logout(@RequestParam("accessToken") String accessToken) {
+        try {
+            if (accessToken == null || accessToken.trim().isEmpty()) {
+                return Result.failure("accessToken不能为空");
+            }
+
+            // 调用Casdoor的logout接口使token失效
+            CasdoorResponse<String, Object> casdoorResponse = authExtendService.logout(accessToken);
+            
+            if (casdoorResponse != null && casdoorResponse.getStatus().equals("ok")) {
+                logger.info("Token登出成功: {}", accessToken);
+                return Result.success("登出成功");
+            } else {
+                logger.warn("Token登出失败: {}", casdoorResponse != null ? casdoorResponse.getMsg() : "未知错误");
+                return Result.failure("登出失败: " + (casdoorResponse != null ? casdoorResponse.getMsg() : "未知错误"));
+            }
+        } catch (Exception exception) {
+            logger.error("Token登出异常", exception);
+            return Result.failure("登出失败: " + exception.getMessage());
+        }
+    }
 
     /**
      * 检查用户登录状态
@@ -141,7 +164,7 @@ public class UserController {
     /**
      * 刷新服务端token（当accessToken过期时使用）
      */
-    @PostMapping("/api/refresh-token")
+    @PostMapping("/refresh-token")
     public Result refreshToken(HttpServletRequest request) {
         try {
             User user = (User) request.getSession().getAttribute("user");
@@ -171,14 +194,7 @@ public class UserController {
         }
     }
 
-    @GetMapping("/api/userinfo")
-    public Result userinfo(Authentication authentication) {
-        CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
-        User user = customUserDetails.getUser();
-        return Result.success(user);
-    }
-
-    @GetMapping("/api/now/userinfo")
+    @GetMapping("/now/userinfo")
     public Result nowUserinfo() throws NoLoginException {
         try {
             User casdoorUser = UserUtils.nowLoginUser();
@@ -189,8 +205,8 @@ public class UserController {
         }
     }
 
-    @GetMapping("/api/userinfobyid")
-    public Result userinfo(@RequestParam("id") String id) {
+    @GetMapping("/userinfo/{id}")
+    public Result userinfo(@PathVariable("id") String id) {
         try {
             User casdoorUser = UserUtils.getUserInfoById(id);
             return Result.success(casdoorUser);
@@ -200,7 +216,7 @@ public class UserController {
         }
     }
 
-    @GetMapping("/api/login-status")
+    @GetMapping("/login-status")
     public Result loginStatus() {
         try {
             boolean currentUserLogin = UserUtils.isCurrentUserLogin();
@@ -211,7 +227,7 @@ public class UserController {
         }
     }
 
-    @PostMapping("/api/user/page-list")
+    @PostMapping("/userinfo/page-list")
     public Result userPageList(@RequestBody List<String> userIdList) {
         try {
             if (userIdList == null || userIdList.isEmpty()) {
@@ -225,7 +241,7 @@ public class UserController {
         }
     }
 
-    @GetMapping("/api/user/permissions")
+    @GetMapping("/now/permissions")
     public Result getCurrentUserPermissions() {
         try {
             List<Permission> permissions = UserUtils.getCurrentUserPermissionList();
@@ -239,7 +255,7 @@ public class UserController {
         }
     }
 
-    @GetMapping("/api/userinfo/phone")
+    @GetMapping("/userinfo/phone")
     public Result userinfoByPhone(@RequestParam("phone") String phone) {
         try {
             User casdoorUser = UserUtils.getUserInfoByPhone(phone);
@@ -253,7 +269,7 @@ public class UserController {
     /**
      * 获取当前用户的租户ID
      */
-    @GetMapping("/api/tenant/id")
+    @GetMapping("/now/tenant")
     public Result getCurrentTenantId() {
         try {
             String tenantId = TenantUtils.getTenantId();
@@ -271,7 +287,7 @@ public class UserController {
     /**
      * 获取当前用户的群组ID
      */
-    @GetMapping("/api/tenant/group-id")
+    @GetMapping("/now/group-id")
     public Result getCurrentGroupId() {
         try {
             String groupId = TenantUtils.getGroupId();
@@ -289,7 +305,7 @@ public class UserController {
     /**
      * 根据用户名获取群组信息
      */
-    @GetMapping("/api/tenant/group-info")
+    @GetMapping("/group-info/username")
     public Result getGroupInfoByName(@RequestParam("username") String username) {
         try {
             if (username == null || username.trim().isEmpty()) {
