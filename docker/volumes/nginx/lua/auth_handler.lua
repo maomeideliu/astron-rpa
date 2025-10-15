@@ -76,7 +76,7 @@ local function authenticate_user()
     ngx_log(ngx_DEBUG, "Successfully extracted session_token: '" .. session_token .. "'")
 
     -- 调用 robot-service 进行认证
-    local getUserUrl = "http://robot-service:8040/api/robot/user/api/now/userinfo"
+    local getUserUrl = "http://robot-service:8040/api/robot/user/now/userinfo"
     local httpc = http.new()
 
     -- 准备发送给 robot-service 的 Headers
