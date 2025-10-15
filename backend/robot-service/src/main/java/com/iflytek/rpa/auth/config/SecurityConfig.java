@@ -42,6 +42,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private final String frontendUrl;
     private final String casdoorUrl;
 
+    @Value("${casdoor.external-endpoint}")
+    private String externalEndPoint;
+
     @Autowired
     private AuthExtendService authExtendService;
 
@@ -134,7 +137,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     try {
                         // 构造Casdoor的登出URL，清除Casdoor侧的登录状态（cookie）
                         // 登出完成后重定向回前端页面
-                        String casdoorLogoutUrl = casdoorUrl + "/api/logout?redirectUri=" +
+                        String casdoorLogoutUrl = externalEndPoint + "/api/logout?redirectUri=" +
                                 java.net.URLEncoder.encode(frontendUrl, "UTF-8");
                         
                         logger.info("重定向到Casdoor登出页面: {}", casdoorLogoutUrl);
