@@ -132,12 +132,23 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 })
                 .logoutSuccessHandler((request, response, authentication) -> {
                     try {
-                        // 登出成功后返回JSON响应
-                        response.setStatus(HttpServletResponse.SC_OK);
-                        response.setContentType("application/json;charset=UTF-8");
-                        response.getWriter().write(AppResponse.success("登出成功").toString());
+                        // 构造Casdoor的登出URL，清除Casdoor侧的登录状态（cookie）
+                        // 登出完成后重定向回前端页面
+                        String casdoorLogoutUrl = casdoorUrl + "/api/logout?redirectUri=" +
+                                java.net.URLEncoder.encode(frontendUrl, "UTF-8");
+                        
+                        logger.info("重定向到Casdoor登出页面: {}", casdoorLogoutUrl);
+                        response.sendRedirect(casdoorLogoutUrl);
                     } catch (Exception e) {
-                        logger.error("登出成功响应写入异常", e);
+                        logger.error("登出重定向异常", e);
+                        // 如果重定向失败，返回JSON响应
+                        try {
+                            response.setStatus(HttpServletResponse.SC_OK);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write(AppResponse.success("登出成功").toString());
+                        } catch (Exception ex) {
+                            logger.error("登出响应写入异常", ex);
+                        }
                     }
                 }));
 
