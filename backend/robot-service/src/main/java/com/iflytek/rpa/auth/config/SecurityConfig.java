@@ -136,21 +136,30 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .logoutSuccessHandler((request, response, authentication) -> {
                     try {
                         // 构造Casdoor的登出URL，清除Casdoor侧的登录状态（cookie）
-                        // 登出完成后重定向回前端页面
                         String casdoorLogoutUrl = externalEndPoint + "/api/logout?redirectUri=" +
                                 java.net.URLEncoder.encode(frontendUrl, "UTF-8");
                         
-                        logger.info("重定向到Casdoor登出页面: {}", casdoorLogoutUrl);
-                        response.sendRedirect(casdoorLogoutUrl);
+                        logger.info("返回Casdoor登出URL给前端: {}", casdoorLogoutUrl);
+                        
+                        // 返回JSON响应，包含Casdoor登出URL，由前端控制跳转
+                        response.setStatus(HttpServletResponse.SC_OK);
+                        response.setContentType("application/json;charset=UTF-8");
+                        
+                        // 构造包含登出URL的响应
+                        String jsonResponse = String.format(
+                            "{\"code\":200,\"message\":\"登出成功\",\"data\":{\"logoutUrl\":\"%s\"}}",
+                            casdoorLogoutUrl
+                        );
+                        response.getWriter().write(jsonResponse);
                     } catch (Exception e) {
-                        logger.error("登出重定向异常", e);
-                        // 如果重定向失败，返回JSON响应
+                        logger.error("登出成功响应写入异常", e);
+                        // 发生异常时返回基础成功响应
                         try {
                             response.setStatus(HttpServletResponse.SC_OK);
                             response.setContentType("application/json;charset=UTF-8");
                             response.getWriter().write(AppResponse.success("登出成功").toString());
                         } catch (Exception ex) {
-                            logger.error("登出响应写入异常", ex);
+                            logger.error("登出异常响应写入失败", ex);
                         }
                     }
                 }));
