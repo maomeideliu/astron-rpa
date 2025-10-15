@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -118,7 +117,7 @@ public class UserController {
 
             // 调用Casdoor的logout接口使token失效
             CasdoorResponse<String, Object> casdoorResponse = authExtendService.logout(accessToken);
-            
+
             if (casdoorResponse != null && casdoorResponse.getStatus().equals("ok")) {
                 logger.info("Token登出成功: {}", accessToken);
                 return Result.success("登出成功");

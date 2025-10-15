@@ -1,13 +1,12 @@
 package com.iflytek.rpa.auth.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.oltu.oauth2.client.OAuthClient;
 import org.apache.oltu.oauth2.client.URLConnectionClient;
 import org.apache.oltu.oauth2.client.request.OAuthClientRequest;
@@ -110,8 +109,9 @@ public class AuthExtendService extends AuthService {
         Map<String, String> params = new HashMap<>();
         params.put("id_token_hint", accessToken);
         params.put("state", config.applicationName);
-        
-        CasdoorResponse<String, Object> resp = doGet("logout", params, new TypeReference<CasdoorResponse<String, Object>>() {});
+
+        CasdoorResponse<String, Object> resp =
+                doGet("logout", params, new TypeReference<CasdoorResponse<String, Object>>() {});
         return resp;
     }
 }

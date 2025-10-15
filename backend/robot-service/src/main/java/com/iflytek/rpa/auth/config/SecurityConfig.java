@@ -110,16 +110,19 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
                             if (user != null) {
 
-                                //调用logout接口将对该用户在casdoor颁发的token过期
+                                // 调用logout接口将对该用户在casdoor颁发的token过期
                                 String accessToken = TokenManager.getAccessToken(user.name);
                                 CasdoorResponse<String, Object> logoutResp = authExtendService.logout(accessToken);
-                                if (logoutResp != null && logoutResp.getStatus().equals("ok")){
+                                if (logoutResp != null && logoutResp.getStatus().equals("ok")) {
                                     logger.info("用户 {} 的casdoor端的token已无效化", user.name);
                                 } else {
-                                    logger.warn("用户 {} 的casdoor端的token登出失败: {}", user.name, logoutResp != null ? logoutResp.getMsg() : "未知错误");
+                                    logger.warn(
+                                            "用户 {} 的casdoor端的token登出失败: {}",
+                                            user.name,
+                                            logoutResp != null ? logoutResp.getMsg() : "未知错误");
                                 }
 
-                                //清除redis中用户对应的token
+                                // 清除redis中用户对应的token
                                 TokenManager.clearTokens(user.name);
                                 logger.info("用户 {} 的服务端token已清除", user.name);
                             }
@@ -136,20 +139,19 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .logoutSuccessHandler((request, response, authentication) -> {
                     try {
                         // 构造Casdoor的登出URL，清除Casdoor侧的登录状态（cookie）
-                        String casdoorLogoutUrl = externalEndPoint + "/api/logout?redirectUri=" +
-                                java.net.URLEncoder.encode(frontendUrl, "UTF-8");
-                        
+                        String casdoorLogoutUrl = externalEndPoint + "/api/logout?redirectUri="
+                                + java.net.URLEncoder.encode(frontendUrl, "UTF-8");
+
                         logger.info("返回Casdoor登出URL给前端: {}", casdoorLogoutUrl);
-                        
+
                         // 返回JSON响应，包含Casdoor登出URL，由前端控制跳转
                         response.setStatus(HttpServletResponse.SC_OK);
                         response.setContentType("application/json;charset=UTF-8");
-                        
+
                         // 构造包含登出URL的响应
                         String jsonResponse = String.format(
-                            "{\"code\":200,\"message\":\"登出成功\",\"data\":{\"logoutUrl\":\"%s\"}}",
-                            casdoorLogoutUrl
-                        );
+                                "{\"code\":200,\"message\":\"登出成功\",\"data\":{\"logoutUrl\":\"%s\"}}",
+                                casdoorLogoutUrl);
                         response.getWriter().write(jsonResponse);
                     } catch (Exception e) {
                         logger.error("登出成功响应写入异常", e);
@@ -157,7 +159,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                         try {
                             response.setStatus(HttpServletResponse.SC_OK);
                             response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write(AppResponse.success("登出成功").toString());
+                            response.getWriter()
+                                    .write(AppResponse.success("登出成功").toString());
                         } catch (Exception ex) {
                             logger.error("登出异常响应写入失败", ex);
                         }
