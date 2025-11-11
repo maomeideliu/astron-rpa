@@ -67,9 +67,14 @@
 # 下载 Python 3.13.x 版本并安装
 ```
 
-#### 方式 2: 使用 Chocolatey
+#### 方式 2: 使用 Winget
 ```bash
-choco install python --version=3.13.0
+winget install Python.Python.3.13
+```
+
+#### 方式 3: 使用 Chocolatey
+```bash
+choco install python --version=3.13.x
 ```
 
 </details>
@@ -158,13 +163,14 @@ pnpm --version
 
 <br>
 
-您需要安装 Microsoft C++ 生成工具。最简单的方法是下载 **Visual Studio 2022 生成工具**。
+您需要安装 Microsoft C++ 生成工具。最简单的方法是下载 [Visual Studio 2022 生成工具](https://visualstudio.microsoft.com/visual-cpp-build-tools/)。
+推荐下载到非系统盘，因为可能会占用较大存储空间。
 
 **安装时请勾选：**
 - ✅ C++ 生成工具
 - ✅ Windows 10 SDK
 
-> **💡 提示：** 使用 Visual Studio 生成工具 2022 安装程序
+> **💡 提示：** ![VS Hint](./docs/images/visual_studio_install.png "VS 安装提示")
 
 </details>
 
@@ -176,7 +182,7 @@ pnpm --version
 > **📝 备注**  
 > Windows 10 (Version 1803+) 和 Windows 11 已预装 WebView2
 
-Tauri 需要 WebView2 才能在 Windows 上呈现网页内容。从微软网站下载和运行**常青版引导程序**即可。
+Tauri 需要 WebView2 才能在 Windows 上呈现网页内容。从[微软网站](https://developer.microsoft.com/zh-cn/microsoft-edge/webview2/#download-section)下载和运行**常青版引导程序**即可。
 
 **🔍 故障排除：** 如果遇到问题（特别是 Windows on ARM），请手动选择适合您架构的版本。
 
@@ -189,7 +195,7 @@ Tauri 需要 WebView2 才能在 Windows 上呈现网页内容。从微软网站�
 
 前往 [Rust 安装地址](https://www.rust-lang.org/zh-CN/tools/install) 来安装 rustup (Rust 安装程序)。
 
-**或者使用 winget 安装：**
+**或者可以在 PowerShell 中使用 winget 安装：**
 ```bash
 winget install --id Rustlang.Rustup
 ```
@@ -337,6 +343,12 @@ cd astron-rpa
 # 进入 Docker 目录
 cd docker
 
+# 复制.env
+cp .env.example .env
+
+# 修改.env中casdoor的服务配置
+CASDOOR_EXTERNAL_ENDPOINT="http://{YOUR_SERVER_IP}:8000"
+
 # 🚀 启动所有服务
 docker compose up -d
 
@@ -363,20 +375,7 @@ redis               Up 30 seconds       0.0.0.0:6379->6379/tcp
 ```bash
 # 📝 查看服务日志
 docker compose logs -f
-
-# ✅ 检查各服务健康状态
-curl http://localhost:8080/health
-curl http://localhost:8081/health
-curl http://localhost:8082/health
 ```
-
-#### 步骤 4️⃣: 访问 Web 界面
-
-| 服务 | 地址 | 说明 |
-|-----|------|------|
-| 🖥️ **管理界面** | http://localhost:8080 | 主要管理控制台 |
-| 📚 **API 文档** | http://localhost:8080/api-docs | Swagger API 文档 |
-| 📊 **监控面板** | http://localhost:8080/monitoring | 系统监控面板 |
 
 ---
 
@@ -397,7 +396,7 @@ docker compose pull
 docker compose up -d
 ```
 
-**📖 详细配置**: [服务端部署指南](../docker/QUICK_START.md)
+**📖 详细配置**: [服务端部署指南](./docker/QUICK_START.md)
 
 
 
@@ -458,7 +457,7 @@ Python313/
 
 ```bash
 # 🚀 完整构建（引擎 + 前端）
-./build.bat --python-exe "C:\Program Files\Python313\python.exe"
+./build.bat -p "C:\Program Files\Python313\python.exe"
 
 # 或使用默认配置（如果 Python 在默认路径）
 ./build.bat
@@ -468,9 +467,9 @@ Python313/
 ```
 
 **执行流程：**
-1. ✅ 检测/复制 Python 环境到 `build/python_core`
+1. ✅ 检测/复制 Python 环境到目录 `build/python_core`
 2. ✅ 安装 RPA 引擎依赖包
-3. ✅ 压缩 Python 核心到 `resources/python_core.7z`
+3. ✅ 压缩 Python 包到目录 `resources/python_core.7z`
 4. ✅ 安装前端依赖
 5. ✅ 构建前端 Web 应用
 6. ✅ 构建 Tauri 桌面应用
@@ -547,7 +546,7 @@ pnpm build:tauri-debug
 
 **打包完成路径：**
 ```
-\frontend\packages\tauri-app\src-tauri\target\debug\bundle\msi\
+./frontend/packages/tauri-app/src-tauri/target/debug/bundle/msi/
 ```
 
 双击 MSI 文件进行安装。
@@ -559,13 +558,11 @@ pnpm build:tauri-debug
 
 <br>
 
-在安装目录下的 `resources/conf.json` 中修改服务端地址：
+安装好后在安装目录下的 `resources/conf.yaml` 中修改服务端地址：
 
-```json
-{
-  "remote_addr": "http://YOUR_SERVER_ADDRESS/",
-  "pypi_remote": ""
-}
+```yaml
+remote_addr: http://YOUR_SERVER_ADDRESS/
+skip_engine_start: false
 ```
 
 > **💡 提示：** 将 `YOUR_SERVER_ADDRESS` 替换为实际的服务端地址
@@ -574,24 +571,13 @@ pnpm build:tauri-debug
 
 ---
 
-### 📦 部署输出
-
-```
-src-tauri/resources/
-└── python_core.7z     # RPA 执行引擎打包文件
-```
-
----
-
 ### 🌐 开发服务器地址
 
 | 服务 | 地址 | 说明 |
 |-----|------|------|
-| 🌐 **Web 应用** | http://localhost:5173 | 开发前端界面 |
 | 🖥️ **桌面应用** | 自动启动窗口 | Tauri 桌面客户端 |
-| 🔌 **主服务 API** | http://localhost:8080 | Robot 服务 API |
-| 🤖 **AI 服务 API** | http://localhost:8001 | AI 智能服务 |
-| 🔗 **OpenAPI 服务** | http://localhost:8002 | OpenAPI 服务 |
+| 🔌 **后端服务 API** | http://localhost:32742 | 后端网关服务Nginx |
+| 🔑 **Casdoor服务 API** | http://localhost:8000 | 认证服务Casdoor |
 
 ---
 
@@ -604,37 +590,15 @@ src-tauri/resources/
 docker compose ps
 
 # 🔍 验证 API 响应
-curl http://localhost:8080/health
-curl http://localhost:8080/api/v1/status
-
-# 🌐 访问 Web 界面
-# 浏览器打开: http://localhost:8080
+curl http://localhost:32742/health
+(返回"healthy"即为部署成功)
 ```
 
-<details>
-<summary>💡 <b>健康检查预期响应</b></summary>
-
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-01T00:00:00Z",
-  "services": {
-    "database": "up",
-    "redis": "up",
-    "api": "up"
-  }
-}
-```
-
-</details>
-
-### ✅ 步骤 2: 连接测试
+### ✅ 步骤 2: Casdoor服务检查
 
 ```bash
-# 🔌 测试 WebSocket 连接
-curl -i -N -H "Connection: Upgrade" -H "Upgrade: websocket" \
-     -H "Sec-WebSocket-Key: test" -H "Sec-WebSocket-Version: 13" \
-     http://localhost:8080/ws
+# 浏览器打开http://localhost:8000
+# 出现casdoor认证页面
 ```
 
 **后续验证：**
@@ -700,6 +664,11 @@ docker compose restart mysql
 # 🔍 检查 Python 安装路径
 where python  # Windows
 which python  # Linux/macOS
+
+# 🔍 检查是否复制的是Python可执行文件
+
+✖️ ./build.bat -p "C:\\Python313"
+✔️ ./build.bat -p "C:\\Python313\\python.exe"
 ```
 
 **解决方案：**
@@ -715,11 +684,7 @@ which python  # Linux/macOS
 <br>
 
 ```bash
-# ✅ 检查 7-Zip 路径
-"C:\Program Files\7-Zip\7z.exe"
-
-# 🔧 手动指定路径
-pack.bat "D:\Tools\7-Zip\7z.exe" "C:\Python313"
+# ✅ 检查准备阶段的所有依赖是否安装完整
 
 # 💾 检查磁盘空间
 dir  # Windows 检查可用空间
@@ -738,15 +703,16 @@ dir  # Windows 检查可用空间
 
 ```bash
 # 🌐 检查网络连通性
-ping localhost
-telnet localhost 8080
+# 用浏览器直接打开下方连接，看是否有结果返回
+# http://localhost:32742 可替换为你部署的服务器的地址+端口
+http://localhost:32742/api/robot/user/login-check
 
 # 🛡️ 检查防火墙设置
 # Windows: 控制面板 > 系统和安全 > Windows Defender 防火墙
 # Linux: ufw status
 
 # ✅ 检查服务端健康状态
-curl http://localhost:8080/health
+curl http://localhost:32742/health
 ```
 
 **常见原因：**
@@ -826,39 +792,6 @@ sudo apt install libwebkit2gtk-4.0-dev build-essential curl wget \
 
 </details>
 
-<details>
-<summary><b>Q: 安装 pywinhook 失败报错 swig.exe 不存在？</b></summary>
-
-<br>
-
-**错误信息：**
-```
-error: Microsoft Visual C++ 14.0 is required
-或
-swig.exe not found
-```
-
-**解决步骤：**
-
-1️⃣ **下载 SWIG**
-   - 访问 http://www.swig.org/download.html
-   - 下载 `swigwin-x.x.x.zip` 解压到任意目录
-
-2️⃣ **添加到系统环境变量**
-   - 将 `swig.exe` 所在目录添加到 PATH 环境变量
-   - 例如：`C:\swig\swigwin-4.1.1`
-
-3️⃣ **验证安装**
-   ```bash
-   swig -version
-   ```
-
-4️⃣ **重新安装 pywinhook**
-   ```bash
-   pip install pywinhook
-   ```
-
-</details>
 
 ## 📞 获取帮助
 

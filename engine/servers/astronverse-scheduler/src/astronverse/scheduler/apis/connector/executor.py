@@ -1,6 +1,6 @@
 import json
 import time
-from typing import Optional
+from typing import Optional, Union
 
 from astronverse.scheduler.apis.connector.terminal import Terminal
 from astronverse.scheduler.apis.response import ResCode, res_msg
@@ -31,6 +31,7 @@ class ExecutorProject(BaseModel):
     hide_log_window: bool = False  # 是否隐藏日志框
     run_param: str = ""  # 执行器参数
     open_virtual_desk: bool = False  # 虚拟桌面
+    version: Union[int, str] = ""  # 机器人版本
 
 
 class StopTask(BaseModel):
@@ -175,11 +176,13 @@ def executor_run_list(task_info: TaskInfo, svc: Svc = Depends(get_svc)):
                 else:
                     # 失败
                     if task_info.exceptional == "jump":
-                        # 跳过
                         break
                     elif task_info.exceptional == "retry_stop":
                         if t == task_info.retry_num - 1:
                             raise Exception("启动失败: {}".format(execute_reason))
+                    elif task_info.exceptional == "retry_jump":
+                        if t == task_info.retry_num - 1:
+                            break
                     else:
                         # stop
                         raise Exception("启动失败: {}".format(execute_reason))
@@ -253,6 +256,7 @@ def executor_run_sync(param: ExecutorProject, svc: Svc = Depends(get_svc)):
         run_param=param.run_param,
         open_virtual_desk=param.open_virtual_desk,
         is_send_log_event=False,
+        version=param.version,
     )
     # 检查是否运行结束
     while svc.executor_mg.status():
@@ -304,6 +308,7 @@ def executor_run(param: ExecutorProject, svc: Svc = Depends(get_svc)):
         run_param=param.run_param,
         open_virtual_desk=param.open_virtual_desk,
         is_send_log_event=True,
+        version=param.version,
     )
     if executor is not None:
         return res_msg(msg="启动成功", data={"addr": "ws://127.0.0.1:{}/".format(executor.exec_port)})

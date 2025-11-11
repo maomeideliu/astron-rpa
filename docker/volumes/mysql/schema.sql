@@ -813,6 +813,50 @@ CREATE TABLE `openapi_auth` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='openapi鉴权储存';
 
 
+-- rpa.openai_workflows definition
+
+CREATE TABLE `openai_workflows` (
+  `project_id` varchar(100) NOT NULL COMMENT '项目ID（主键）',
+  `name` varchar(100) NOT NULL COMMENT '工作流名称',
+  `description` varchar(500) DEFAULT NULL COMMENT '工作流描述',
+  `version` int(11) NOT NULL DEFAULT '1' COMMENT '工作流版本号',
+  `status` int(11) NOT NULL DEFAULT '1' COMMENT '工作流状态（1=激活，0=禁用）',
+  `user_id` varchar(50) NOT NULL COMMENT '用户ID',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `english_name` varchar(100) DEFAULT NULL COMMENT '翻译后的英文名称',
+  `parameters` text COMMENT '存储JSON字符串格式的参数',
+  PRIMARY KEY (`project_id`),
+  KEY `idx_name` (`name`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- rpa.openai_executions definition
+
+CREATE TABLE `openai_executions` (
+  `id` varchar(36) NOT NULL COMMENT '执行记录ID（UUID）',
+  `project_id` varchar(100) NOT NULL COMMENT '项目ID（关联工作流）',
+  `status` varchar(20) NOT NULL DEFAULT 'PENDING' COMMENT '执行状态（PENDING/RUNNING/COMPLETED/FAILED/CANCELLED）',
+  `parameters` text COMMENT '执行参数（JSON格式）',
+  `result` text COMMENT '执行结果（JSON格式）',
+  `error` text COMMENT '错误信息',
+  `user_id` varchar(50) NOT NULL COMMENT '用户ID',
+  `exec_position` varchar(50) NOT NULL DEFAULT 'EXECUTOR' COMMENT '执行位置',
+  `version` int(11) DEFAULT NULL COMMENT '工作流版本号',
+  `start_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '开始时间',
+  `end_time` datetime DEFAULT NULL COMMENT '结束时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_project_id` (`project_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_start_time` (`start_time`),
+  CONSTRAINT `openai_executions_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `openai_workflows` (`project_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 -- rpa.pypi_packages definition
 
 CREATE TABLE `pypi_packages` (
@@ -1297,3 +1341,39 @@ CREATE TABLE `trigger_task` (
   `queue_enable` smallint(6) DEFAULT '0' COMMENT '是否启用排队 1:启用 0:不启用',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=194 DEFAULT CHARSET=utf8 COMMENT='触发器计划任务';
+
+-- rpa.sample_templates
+create table sample_templates
+(
+    id           bigint unsigned auto_increment comment '主键' primary key,
+    sample_id    varchar(100)                          null comment '样例id',
+    name         varchar(50)                           not null comment '模版名称',
+    type         varchar(20)                           not null comment '模板类型：robot_design, robot_execute, schedule_task 等',
+    version      varchar(20) default '1.0.0'           not null comment '模板语义化版本号（如 1.2.0）',
+    data         text                                  not null comment '模板配置数据（JSON 格式），数据库一行的数据',
+    description  text                                  null comment '模板说明',
+    is_active    tinyint     default 1                 not null comment '是否启用（false 则新用户不注入）',
+    is_deleted   tinyint     default 0                 not null comment '逻辑删除标记（避免物理删除）',
+    created_time timestamp   default CURRENT_TIMESTAMP not null,
+    updated_time timestamp   default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP
+)
+    comment '系统预定义的模板库，用于注入用户初始化数据。支持 robot、project、task 等多种类型。' charset = utf8mb4;
+
+-- rpa.sample_users
+create table sample_users
+(
+    id               bigint unsigned auto_increment comment '主键自增ID' primary key,
+    creator_id       char(36)                                          not null comment '用户唯一标识（如 UUID）',
+    sample_id        varchar(100)                                      not null comment '关联 sample_templates.sample_id',
+    name             varchar(100)                                      not null comment '用户看到的名称（默认继承模板 name，可自定义）',
+    data             text                                              not null comment '从模板中注入的配置数据（JSON 字符串，由 Java 序列化）',
+    source           enum ('system', 'user') default 'system'          not null comment '来源：system（系统自动注入）或 user（用户手动创建/修改）',
+    version_injected varchar(20)                                       not null comment '注入时所用模板的版本号，用于后续升级判断',
+    created_time     timestamp               default CURRENT_TIMESTAMP not null comment '创建时间',
+    updated_time     timestamp               default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '最后更新时间',
+    constraint sample_users_creator_id_sample_id_uindex
+        unique (creator_id, sample_id)
+)
+    comment '记录用户从系统模板中注入的样例数据，是模板工程的核心中间层。' charset = utf8mb4;
+
+

@@ -5,6 +5,8 @@ import com.iflytek.rpa.auth.utils.ResponseUtils;
 import com.iflytek.rpa.auth.utils.TokenManager;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
 
+import com.iflytek.rpa.auth.utils.TokenManager;
+import com.iflytek.rpa.starter.utils.response.AppResponse;
 import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -20,7 +22,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -48,8 +49,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Value("${casdoor.redirect-url}")
     private String frontendUrl;
 
-    public SecurityConfig(
-            SessionAuthenticationFilter sessionAuthenticationFilter) {
+    public SecurityConfig(SessionAuthenticationFilter sessionAuthenticationFilter) {
         this.sessionAuthenticationFilter = sessionAuthenticationFilter;
     }
 
@@ -70,7 +70,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         // 配置访问权限
         http.authorizeRequests(authorize -> authorize
                 // 公开端点：OAuth2.0授权相关
-                .mvcMatchers("/user/redirect-url", "/user/sign/in", "/user/sign/out")
+                .mvcMatchers("/user/redirect-url", "/user/sign/in", "/user/sign/out", "/example/insert")
                 .permitAll()
                 // 需要认证的端点
                 .mvcMatchers("/user/api/**", "/api/**")
