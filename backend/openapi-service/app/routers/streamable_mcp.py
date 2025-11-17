@@ -1,10 +1,11 @@
-import os
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from mcp.server.lowlevel import Server
 import mcp.types as types
 from starlette.types import Receive, Scope, Send
+import json
 
 from app.logger import get_logger
+
 logger = get_logger(__name__)
 from app.services.streamable_mcp import ToolsConfig
 from app.dependencies import extract_api_key_from_request
@@ -38,16 +39,11 @@ async def call_tool(name: str, arguments: dict) -> list[types.ContentBlock]:
             logger="permission_check",
             related_request_id=ctx.request_id,
         )
-        return [
-            types.TextContent(
-                type="text",
-                text="Error: No user found for this API key",
-            )
-        ]
+        raise Exception("未找到用户: No user found for API key")
 
     # 使用 ToolsConfig 执行工作流
     result = await tools_config.execute_workflow_by_name(name, user_id, arguments)
-    
+
     if result["success"]:
         # 记录成功执行
         await ctx.session.send_log_message(
@@ -56,13 +52,11 @@ async def call_tool(name: str, arguments: dict) -> list[types.ContentBlock]:
             logger="workflow_execution",
             related_request_id=ctx.request_id,
         )
-        
-        return [
-            types.TextContent(
-                type="text",
-                text=result["message"],
-            )
-        ]
+
+        if result["message"]["code"] == "0000":
+            return [types.TextContent(type="text", text=json.dumps(result["message"], indent=2, ensure_ascii=False))]
+        else:
+            raise Exception(f"客户端运行失败：{result['message']['msg']}")
     else:
         # 记录失败信息
         await ctx.session.send_log_message(
@@ -71,13 +65,9 @@ async def call_tool(name: str, arguments: dict) -> list[types.ContentBlock]:
             logger="workflow_execution",
             related_request_id=ctx.request_id,
         )
-        
-        return [
-            types.TextContent(
-                type="text",
-                text=result["error"],
-            )
-        ]
+
+        raise Exception(f"服务端运行失败：{result['error']}")
+
 
 @app.list_tools()
 async def list_tools() -> list[types.Tool]:
@@ -92,7 +82,7 @@ async def list_tools() -> list[types.Tool]:
     user_id = await tools_config.get_uid_from_raw_key(api_key)
     if not user_id:
         # 记录权限检查失败
-        if hasattr(ctx, 'session'):
+        if hasattr(ctx, "session"):
             await ctx.session.send_log_message(
                 level="warning",
                 data=f"No user found for API key: {api_key}",
@@ -105,7 +95,7 @@ async def list_tools() -> list[types.Tool]:
     allowed_tools = await tools_config.get_tools_for_user(user_id)
 
     # 记录权限检查成功
-    if hasattr(ctx, 'session'):
+    if hasattr(ctx, "session"):
         await ctx.session.send_log_message(
             level="info",
             data=f"User access: user_id={user_id}, allowed_tools={len(allowed_tools)}",
@@ -116,9 +106,5 @@ async def list_tools() -> list[types.Tool]:
     return allowed_tools
 
 
-async def handle_streamable_http(
-    scope: Scope, receive: Receive, send: Send
-) -> None:
+async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
     await session_manager.handle_request(scope, receive, send)
-
-

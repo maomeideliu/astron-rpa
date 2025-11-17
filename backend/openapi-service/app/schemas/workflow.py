@@ -19,16 +19,20 @@ class ExecutionStatus(str, Enum):
 
 class WorkflowBase(BaseModel):
     """工作流基本数据模型"""
-    project_id: Union[str,int] = Field(..., description="项目ID")
-    name: str = Field(..., description="工作流名称", min_length=1, max_length=100)
+
+    project_id: Union[str, int] = Field(..., description="项目ID")
+    name: str = Field("Default_Workflow", description="工作流名称", min_length=1, max_length=100)
     english_name: Optional[str] = Field(None, description="工作流英文名称", max_length=100)
     description: Optional[str] = Field(None, description="工作流描述", max_length=500)
     version: int = Field(1, description="工作流版本号")
-    status: int = Field(1, description="工作流状态")
+    status: int = Field(0, description="工作流状态")
     parameters: Optional[str] = Field(None, description="工作流参数(JSON格式)")
+    example_project_id: Optional[str] = Field(None, description="示例用户账号下的project_id，用于执行时映射")
+
 
 class WorkflowResponse(WorkflowBase):
     """工作流响应模型"""
+
     created_at: datetime = Field(..., description="创建时间")
     updated_at: Optional[datetime] = Field(None, description="更新时间")
 
@@ -37,11 +41,13 @@ class WorkflowResponse(WorkflowBase):
 
 class WorkflowListResponse(BaseModel):
     """工作流列表响应模型"""
+
     data: List[WorkflowResponse] = Field(..., description="工作流列表")
 
 
 class ExecutionCreate(BaseModel):
     """创建工作流执行记录请求模型"""
+
     project_id: str = Field(..., description="项目ID")
     params: Optional[Dict[str, Any]] = Field(None, description="执行参数")
     exec_position: str = Field("EXECUTOR", description="执行位置")
@@ -50,6 +56,7 @@ class ExecutionCreate(BaseModel):
 
 class ExecutionResponse(BaseModel):
     """执行记录响应模型"""
+
     id: str = Field(..., description="执行记录ID")
     project_id: str = Field(..., description="项目ID")
     status: str = Field(..., description="执行状态")
@@ -62,5 +69,3 @@ class ExecutionResponse(BaseModel):
     end_time: Optional[datetime] = Field(None, description="结束时间")
 
     model_config = {"from_attributes": True}
-    
-
