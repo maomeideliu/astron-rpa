@@ -2,20 +2,26 @@ package com.iflytek.rpa.auth.controller;
 
 import com.iflytek.rpa.auth.entity.CustomUserDetails;
 import com.iflytek.rpa.auth.entity.Result;
+import com.iflytek.rpa.auth.service.ApplicationExtendService;
 import com.iflytek.rpa.auth.service.AuthExtendService;
 import com.iflytek.rpa.auth.utils.TokenManager;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.utils.TenantUtils;
 import com.iflytek.rpa.utils.UserUtils;
+
+import java.io.IOException;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import org.apache.oltu.oauth2.client.response.OAuthJSONAccessTokenResponse;
+import org.casbin.casdoor.entity.Application;
 import org.casbin.casdoor.entity.Group;
 import org.casbin.casdoor.entity.Permission;
 import org.casbin.casdoor.entity.User;
 import org.casbin.casdoor.exception.AuthException;
+import org.casbin.casdoor.service.ApplicationService;
 import org.casbin.casdoor.service.AuthService;
+import org.casbin.casdoor.service.CertService;
 import org.casbin.casdoor.util.http.CasdoorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +43,7 @@ public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     private final AuthService authService;
+    private final ApplicationExtendService applicationExtendService;
     private final AuthExtendService authExtendService;
     private final String redirectUrl;
 
@@ -48,10 +55,11 @@ public class UserController {
     private String externalEndPoint;
 
     public UserController(
-            AuthService authService,
+            AuthService authService, ApplicationExtendService applicationExtendService,
             AuthExtendService authExtendService,
             @Value("${casdoor.redirect-url}") String redirectUrl) {
         this.authService = authService;
+        this.applicationExtendService = applicationExtendService;
         this.authExtendService = authExtendService;
         this.redirectUrl = redirectUrl;
     }
@@ -76,9 +84,10 @@ public class UserController {
             String accessToken = oAuthTokenResponse.getAccessToken();
             String refreshToken = oAuthTokenResponse.getRefreshToken();
             String idToken = accessToken;
-
+            //动态获取系统内置证书，在initDataNewOnly为true时，证书会被篡改
+            Application applicationWithKey = applicationExtendService.getApplicationWithKey("app-built-in");
             // 使用idToken解析用户信息（这是OIDC的核心：从id_token获取用户身份）
-            User user = authService.parseJwtToken(idToken);
+            User user = authExtendService.parseJwtTokenWithCertificate(idToken, applicationWithKey.cert);
 
             // 1. 将用户信息存储到session中（Spring Session自动管理Redis存储）
             HttpSession session = request.getSession();
@@ -100,6 +109,9 @@ public class UserController {
         } catch (AuthException exception) {
             logger.error("casdoor auth exception", exception);
             return Result.failure(exception.getMessage());
+        } catch (IOException e) {
+            logger.error("解析token异常", e);
+            return Result.failure("解析token失败: " + e.getMessage());
         }
     }
 
