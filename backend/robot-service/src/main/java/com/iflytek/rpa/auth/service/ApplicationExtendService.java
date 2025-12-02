@@ -1,6 +1,7 @@
 package com.iflytek.rpa.auth.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.iflytek.rpa.auth.entity.ApplicationExtend;
 import org.casbin.casdoor.config.Config;
 import org.casbin.casdoor.entity.Application;
 import org.casbin.casdoor.service.ApplicationService;
@@ -23,13 +24,13 @@ public class ApplicationExtendService extends ApplicationService {
         super(config);
     }
 
-    public Application getApplicationWithKey(String name) throws IOException {
+    public ApplicationExtend getApplicationWithKey(String name) throws IOException {
         java.util.Map<String, String> params = new HashMap<>();
         params.put("id", "admin/" + name);
         params.put("withKey", "1");
 
-        CasdoorResponse<Application, Object> response =
-                doGet("get-application", params, new TypeReference<CasdoorResponse<Application, Object>>() {});
+        CasdoorResponse<ApplicationExtend, Object> response =
+                doGet("get-application", params, new TypeReference<CasdoorResponse<ApplicationExtend, Object>>() {});
         return response.getData();
     }
 

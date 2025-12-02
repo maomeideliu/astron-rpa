@@ -1,5 +1,6 @@
 package com.iflytek.rpa.auth.controller;
 
+import com.iflytek.rpa.auth.entity.ApplicationExtend;
 import com.iflytek.rpa.auth.entity.CustomUserDetails;
 import com.iflytek.rpa.auth.entity.Result;
 import com.iflytek.rpa.auth.service.ApplicationExtendService;
@@ -85,9 +86,9 @@ public class UserController {
             String refreshToken = oAuthTokenResponse.getRefreshToken();
             String idToken = accessToken;
             //动态获取系统内置证书，在initDataNewOnly为true时，证书会被篡改
-            Application applicationWithKey = applicationExtendService.getApplicationWithKey("app-built-in");
+            ApplicationExtend applicationWithKey = applicationExtendService.getApplicationWithKey("app-built-in");
             // 使用idToken解析用户信息（这是OIDC的核心：从id_token获取用户身份）
-            User user = authExtendService.parseJwtTokenWithCertificate(idToken, applicationWithKey.cert);
+            User user = authExtendService.parseJwtTokenWithCertificate(idToken, applicationWithKey.certPublicKey);
 
             // 1. 将用户信息存储到session中（Spring Session自动管理Redis存储）
             HttpSession session = request.getSession();
