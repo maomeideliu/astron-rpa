@@ -2,15 +2,12 @@ package com.iflytek.rpa.auth.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iflytek.rpa.auth.entity.ApplicationExtend;
-import org.casbin.casdoor.config.Config;
-import org.casbin.casdoor.entity.Application;
-import org.casbin.casdoor.service.ApplicationService;
-import org.casbin.casdoor.util.Map;
-import org.casbin.casdoor.util.http.CasdoorResponse;
-import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.util.HashMap;
+import org.casbin.casdoor.config.Config;
+import org.casbin.casdoor.service.ApplicationService;
+import org.casbin.casdoor.util.http.CasdoorResponse;
+import org.springframework.stereotype.Service;
 
 /**
  * @desc: TODO
@@ -33,5 +30,4 @@ public class ApplicationExtendService extends ApplicationService {
                 doGet("get-application", params, new TypeReference<CasdoorResponse<ApplicationExtend, Object>>() {});
         return response.getData();
     }
-
 }
