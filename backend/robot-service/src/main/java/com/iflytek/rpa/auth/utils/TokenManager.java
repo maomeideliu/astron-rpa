@@ -1,9 +1,9 @@
 package com.iflytek.rpa.auth.utils;
 
+import com.iflytek.rpa.auth.feign.entity.User;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.redis.RedisUtils;
 import com.iflytek.rpa.utils.UserUtils;
-import org.casbin.casdoor.entity.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -118,7 +118,7 @@ public class TokenManager {
      */
     public static String getCurrentUserAccessToken() throws NoLoginException {
         User currentUser = UserUtils.nowLoginUser();
-        String accessToken = getAccessToken(currentUser.name);
+        String accessToken = getAccessToken(currentUser.getLoginName());
 
         if (accessToken == null) {
             throw new NoLoginException("用户AccessToken不存在，请重新登录");

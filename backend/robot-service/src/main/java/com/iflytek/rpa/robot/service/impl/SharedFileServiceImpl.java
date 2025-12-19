@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.iflytek.rpa.auth.feign.entity.Permission;
+import com.iflytek.rpa.auth.feign.entity.User;
 import com.iflytek.rpa.robot.dao.SharedFileDao;
 import com.iflytek.rpa.robot.entity.SharedFile;
 import com.iflytek.rpa.robot.entity.SharedFileTag;
@@ -30,8 +32,6 @@ import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.casbin.casdoor.entity.Permission;
-import org.casbin.casdoor.entity.User;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -100,7 +100,7 @@ public class SharedFileServiceImpl extends ServiceImpl<SharedFileDao, SharedFile
             vo.setCreatorName(UserUtils.getRealNameById(sharedFile.getCreatorId()));
             User userInfoById = UserUtils.getUserInfoById(creatorId);
             if (Objects.nonNull(userInfoById)) {
-                vo.setPhone(userInfoById.phone);
+                vo.setPhone(userInfoById.getPhone());
             }
             //            vo.setDeptId(deptId);
 
@@ -282,7 +282,7 @@ public class SharedFileServiceImpl extends ServiceImpl<SharedFileDao, SharedFile
         // 如果是租户管理员，直接返回true
         User uapUser = UserUtils.nowLoginUser();
         String tenantId = TenantUtils.getTenantId();
-        Integer tenantUserType = sharedFileDao.isTenantAdmin(uapUser.id, tenantId, databaseName);
+        Integer tenantUserType = sharedFileDao.isTenantAdmin(uapUser.getId(), tenantId, databaseName);
         if (tenantUserType != null && tenantUserType == 1) {
             return true;
         }

@@ -1,6 +1,7 @@
 package com.iflytek.rpa.utils;
 
 import com.iflytek.rpa.auth.feign.RpaAuthFeign;
+import com.iflytek.rpa.auth.feign.entity.Permission;
 import com.iflytek.rpa.auth.feign.entity.Role;
 import com.iflytek.rpa.auth.feign.entity.User;
 import com.iflytek.rpa.auth.feign.entity.dto.GetRoleDto;
@@ -288,11 +289,25 @@ public class UserUtils {
      *
      * @return 权限列表
      */
-    public static List<?> getCurrentUserPermissionList() throws NoLoginException {
-        // todo 注意：Feign返回的User类型可能不包含permissions字段
-        // 需要根据实际Feign接口调整，或者通过其他接口获取权限列表
-        log.warn("getCurrentUserPermissionList方法需要根据实际Feign接口实现");
-        return Collections.emptyList();
+    public static List<Permission> getCurrentUserPermissionList() throws NoLoginException {
+        if (Objects.isNull(staticRpaAuthFeign)) {
+            throw new NoLoginException("Feign客户端未初始化");
+        }
+
+        try {
+            AppResponse<List<Permission>> response = staticRpaAuthFeign.getCurrentUserPermissionList();
+            if (response != null && response.ok() && response.getData() != null) {
+                return response.getData();
+            } else {
+                log.warn(
+                        "获取当前用户权限列表失败, 响应: {}",
+                        response != null ? response.getMessage() : "null");
+                return Collections.emptyList();
+            }
+        } catch (Exception e) {
+            log.error("获取当前用户权限列表失败", e);
+            throw new NoLoginException("获取当前用户权限列表失败: " + e.getMessage());
+        }
     }
 
     /**
