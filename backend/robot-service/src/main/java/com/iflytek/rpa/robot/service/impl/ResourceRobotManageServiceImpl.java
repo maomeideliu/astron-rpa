@@ -5,6 +5,7 @@ import static com.iflytek.rpa.robot.constants.RobotConstant.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.iflytek.rpa.auth.feign.entity.User;
 import com.iflytek.rpa.robot.dao.*;
 import com.iflytek.rpa.robot.entity.RobotExecute;
 import com.iflytek.rpa.robot.entity.RobotVersion;
@@ -31,7 +32,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.casbin.casdoor.entity.User;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -107,8 +107,8 @@ public class ResourceRobotManageServiceImpl implements ResourceRobotManageServic
         recordList.forEach(record -> {
             User uapUser = userMap.get(record.getCreatorId());
             if (uapUser != null) {
-                record.setCreatorName(uapUser.name);
-                record.setCreatorPhone(uapUser.phone);
+                record.setCreatorName(uapUser.getLoginName());
+                record.setCreatorPhone(uapUser.getPhone());
             }
         });
     }

@@ -1,5 +1,6 @@
 package com.iflytek.rpa.example.controller;
 
+import com.iflytek.rpa.auth.feign.entity.User;
 import com.iflytek.rpa.example.service.SampleUsersService;
 import com.iflytek.rpa.starter.exception.ServiceException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
@@ -7,7 +8,6 @@ import com.iflytek.rpa.utils.UserUtils;
 import java.io.IOException;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.casbin.casdoor.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +34,6 @@ public class ExampleController {
         if (user == null) throw new ServiceException("fail to get casdoor user by name");
 
         // insert sample
-        return sampleUsersService.insertUserSample(user.id, tenantId);
+        return sampleUsersService.insertUserSample(user.getId(), tenantId);
     }
 }

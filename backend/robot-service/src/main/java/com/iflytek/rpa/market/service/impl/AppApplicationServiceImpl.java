@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iflytek.rpa.auth.feign.entity.User;
 import com.iflytek.rpa.market.dao.AppApplicationDao;
 import com.iflytek.rpa.market.dao.AppApplicationTenantDao;
 import com.iflytek.rpa.market.dao.AppMarketResourceDao;
@@ -37,7 +38,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.casbin.casdoor.entity.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.BeanUtils;
@@ -451,8 +451,8 @@ public class AppApplicationServiceImpl extends ServiceImpl<AppApplicationDao, Ap
         recordList.forEach(record -> {
             User uapUser = userMap.get(record.getCreatorId());
             if (uapUser != null) {
-                record.setCreatorName(uapUser.name);
-                record.setCreatorPhone(uapUser.phone);
+                record.setCreatorName(uapUser.getLoginName());
+                record.setCreatorPhone(uapUser.getPhone());
             }
         });
     }
@@ -1005,7 +1005,7 @@ public class AppApplicationServiceImpl extends ServiceImpl<AppApplicationDao, Ap
 
         String resStr = "";
         for (int i = 0; i < userList.size(); i++) {
-            String name = userList.get(i).name;
+            String name = userList.get(i).getLoginName();
             if (i == 0) {
                 resStr = name;
                 continue;

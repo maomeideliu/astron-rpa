@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.iflytek.rpa.auth.feign.entity.User;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.exception.ServiceException;
 import com.iflytek.rpa.task.entity.enums.SourceTypeEnum;
@@ -18,7 +19,6 @@ import com.iflytek.rpa.utils.MonitorUtils;
 import com.iflytek.rpa.utils.TenantUtils;
 import com.iflytek.rpa.utils.UserUtils;
 import java.util.List;
-import org.casbin.casdoor.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -45,9 +45,9 @@ public class TaskMailServiceImpl extends ServiceImpl<TaskMailMapper, TaskMail> i
         User userDetail = UserUtils.nowLoginUser();
         String sourceType = HttpUtils.getSourceType();
         if (SourceTypeEnum.WEB.getCode().equals(sourceType) && userId != null) {
-            userDetail.id = userId;
+            userDetail.setId(userId);
         }
-        wrapper.eq(TaskMail::getUserId, userDetail.id);
+        wrapper.eq(TaskMail::getUserId, userDetail.getId());
         wrapper.eq(TaskMail::getTenantId, TenantUtils.getTenantId());
         wrapper.orderByDesc(TaskMail::getId);
         page = this.page(page, wrapper);
@@ -101,7 +101,7 @@ public class TaskMailServiceImpl extends ServiceImpl<TaskMailMapper, TaskMail> i
             mail.setPort(PORT);
         }
         if (mail.getUserId() == null) {
-            mail.setUserId(UserUtils.nowLoginUser().id);
+            mail.setUserId(UserUtils.nowLoginUser().getId());
         }
         mail.setTenantId(TenantUtils.getTenantId());
         mail.setPort(mail.getPort().replaceAll(" ", ""));
