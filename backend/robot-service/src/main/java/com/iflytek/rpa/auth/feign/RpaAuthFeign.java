@@ -357,12 +357,11 @@ public interface RpaAuthFeign {
 
     /**
      * 查询角色详情
-     * @param tenantId
      * @param dto
      * @return
      */
     @PostMapping("/api/rpa-auth/role/queryDetail")
-    AppResponse<Role> queryRoleDetail(@RequestParam("tenantId") String tenantId, @RequestBody GetRoleDto dto);
+    AppResponse<Role> queryRoleDetail(@RequestBody GetRoleDto dto);
 
     /**
      * 查询应用内全部角色列表
