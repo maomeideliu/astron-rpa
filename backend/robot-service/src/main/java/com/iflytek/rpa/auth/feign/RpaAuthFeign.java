@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
@@ -268,6 +269,13 @@ public interface RpaAuthFeign {
     @GetMapping("/api/rpa-auth/user/search")
     AppResponse<List<User>> searchUserByNameOrPhone(@RequestParam("keyword") String keyword,
                                                     @RequestParam(value = "deptId", required = false) String deptId);
+
+    /**
+     * 获取当前用户权限列表
+     * @return 用户权限列表
+     */
+    @GetMapping("/api/rpa-auth/user/current/permissions")
+    AppResponse<List<Permission>> getCurrentUserPermissionList();
 
     // ==================== TenantController 租户相关接口 ====================
 
