@@ -9,7 +9,7 @@ import com.iflytek.rpa.base.entity.dto.CRequireDto;
 import com.iflytek.rpa.base.service.CRequireService;
 import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
-import com.iflytek.rpa.utils.UserUtils;
+import com.iflytek.rpa.auth.utils.UserUtils;
 import java.util.List;
 import javax.annotation.Resource;
 import org.springframework.stereotype.Service;

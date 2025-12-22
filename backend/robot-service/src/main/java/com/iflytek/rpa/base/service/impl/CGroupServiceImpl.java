@@ -13,7 +13,7 @@ import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
 import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
 import com.iflytek.rpa.utils.IdWorker;
-import com.iflytek.rpa.utils.UserUtils;
+import com.iflytek.rpa.auth.utils.UserUtils;
 import javax.annotation.Resource;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;

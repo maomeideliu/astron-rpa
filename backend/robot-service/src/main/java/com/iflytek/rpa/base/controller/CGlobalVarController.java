@@ -7,7 +7,7 @@ import com.iflytek.rpa.base.entity.dto.CGlobalDto;
 import com.iflytek.rpa.base.service.CGlobalVarService;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
 import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
-import com.iflytek.rpa.utils.UserUtils;
+import com.iflytek.rpa.auth.utils.UserUtils;
 import javax.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

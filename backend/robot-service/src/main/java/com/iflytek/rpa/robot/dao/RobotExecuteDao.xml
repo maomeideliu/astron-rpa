@@ -40,12 +40,12 @@
     </resultMap>
 
 
-    <select id="getUnDeployedUserList" resultType="org.casbin.casdoor.entity.User">
+    <select id="getUnDeployedUserList" resultType="com.iflytek.rpa.auth.feign.entity.User">
         select
         tu.phone,
         tu.name,
         tu.id
-        from ${databaseName}.t_uap_user tu
+        from ${databaseName}.user tu
         where
         not exists(select 1 from robot_execute re
         where re.deleted = 0 and re.creator_id = tu.id and re.data_source = 'deploy'
@@ -53,7 +53,7 @@
         <if test="entity.keyword != null and entity.keyword != ''">
             and (tu.phone like CONCAT('%',#{entity.keyword},'%') or tu.name like CONCAT('%',#{entity.keyword},'%') )
         </if>
-        and tu.is_delete = 0
+        and tu.is_deleted = 0
         limit 20
     </select>
 

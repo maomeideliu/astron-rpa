@@ -19,7 +19,7 @@ import com.iflytek.rpa.starter.exception.NoLoginException;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
 import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
 import com.iflytek.rpa.utils.IdWorker;
-import com.iflytek.rpa.utils.UserUtils;
+import com.iflytek.rpa.auth.utils.UserUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;

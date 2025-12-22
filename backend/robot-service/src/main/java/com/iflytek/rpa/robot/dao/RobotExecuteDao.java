@@ -1,6 +1,7 @@
 package com.iflytek.rpa.robot.dao;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.iflytek.rpa.auth.feign.entity.User;
 import com.iflytek.rpa.market.entity.AppMarketResource;
 import com.iflytek.rpa.market.entity.MarketDto;
 import com.iflytek.rpa.market.entity.dto.MarketResourceDto;
@@ -16,7 +17,6 @@ import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-import org.casbin.casdoor.entity.User;
 
 /**
  * 云端机器人表(RobotExecute)表数据库访问层

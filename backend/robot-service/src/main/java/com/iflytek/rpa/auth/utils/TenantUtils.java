@@ -1,4 +1,4 @@
-package com.iflytek.rpa.utils;
+package com.iflytek.rpa.auth.utils;
 
 import com.iflytek.rpa.auth.feign.RpaAuthFeign;
 import com.iflytek.rpa.starter.utils.response.AppResponse;

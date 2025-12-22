@@ -5,7 +5,7 @@ import com.iflytek.rpa.market.dao.AppMarketUserDao;
 import com.iflytek.rpa.market.entity.AppMarketDict;
 import com.iflytek.rpa.starter.utils.response.AppResponse;
 import com.iflytek.rpa.starter.utils.response.ErrorCodeEnum;
-import com.iflytek.rpa.utils.UserUtils;
+import com.iflytek.rpa.auth.utils.UserUtils;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import org.aspectj.lang.ProceedingJoinPoint;
