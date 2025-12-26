@@ -2,7 +2,7 @@ spring:
   application:
     name: robot
   profiles:
-    active: local
+    active: casdoor
 
 server:
   port: 8040

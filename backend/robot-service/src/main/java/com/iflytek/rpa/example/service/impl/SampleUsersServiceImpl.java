@@ -101,7 +101,7 @@ public class SampleUsersServiceImpl extends ServiceImpl<SampleUsersDao, SampleUs
         }
 
         // user_sample 表中插入记录
-        addUserSamples(latestActiveTemplates, userId, tenantId);
+//        addUserSamples(latestActiveTemplates, userId, tenantId);
 
         return AppResponse.success(true);
     }
