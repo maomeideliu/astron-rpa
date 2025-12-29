@@ -150,7 +150,7 @@ resource:
     url: /api/resource/file/download?fileId=
 
 casdoor:
-  endpoint: http://172.29.231.250:8000
+  endpoint: http://rpa-opensource-casdoor:8000
   client-id: e3ba6fec42cfe996121f
   client-secret: 0c18bf2a11ffbb756ec6ce47dae9e09bdd48e3dd
   certificate: |-
