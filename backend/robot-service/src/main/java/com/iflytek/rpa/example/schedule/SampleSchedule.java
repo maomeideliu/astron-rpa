@@ -24,13 +24,13 @@ public class SampleSchedule {
      * example user sample Inject
      * @throws IOException
      */
-    @EventListener(ApplicationReadyEvent.class)
+//    @EventListener(ApplicationReadyEvent.class)
     public void exampleUserSampleInject() throws IOException {
-        log.info("example user sample Inject start ......");
-        User user = UserUtils.getUserByName(EXAMPLE_USER_NAME);
-        String tenantId = user.getExtInfo();
-        String userId = user.getId();
-        AppResponse<Boolean> response = sampleUsersService.insertUserSample(userId, tenantId);
-        log.info("example user sample Inject result" + response.getMessage());
+//        log.info("example user sample Inject start ......");
+//        User user = UserUtils.getUserByName(EXAMPLE_USER_NAME);
+//        String tenantId = user.getExtInfo();
+//        String userId = user.getId();
+//        AppResponse<Boolean> response = sampleUsersService.insertUserSample(userId, tenantId);
+//        log.info("example user sample Inject result" + response.getMessage());
     }
 }
