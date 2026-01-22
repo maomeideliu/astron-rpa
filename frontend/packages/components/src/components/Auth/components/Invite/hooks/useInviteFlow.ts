@@ -1,14 +1,16 @@
-import { ref } from 'vue'
+import { Modal } from 'ant-design-vue'
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { acceptInvite, queryInviteData } from '../../../api/invite'
 import { loginStatus, userInfo } from '../../../api/login'
 import type { InviteInfo } from '../../../interface'
-import { getQuery } from '../../../utils/index'
 
 type PageStatus = 'linkExpired' | 'needLogin' | 'showUserInfo' | 'joinSuccess' | 'joined' | 'reachLimited' | 'marketFull'
 
 export function useInviteFlow(emits: { (e: 'joinSuccess'): void }) {
-  const inviteKey = getQuery().inviteKey as string
+  const route = useRoute()
+  const inviteKey = ref(route.query.inviteKey as string)
   const currentStatus = ref<PageStatus>()
   const inviteInfo = ref<InviteInfo>({
     resultCode: '',
@@ -61,14 +63,19 @@ export function useInviteFlow(emits: { (e: 'joinSuccess'): void }) {
       switchPage('showUserInfo')
     }
   }
-
   const getInviteInfo = async () => {
-    if (!inviteKey) {
+    if (!inviteKey.value) {
       switchPage('linkExpired')
       return
     }
-    const data = await queryInviteData({ inviteKey })
-    updateInviteInfo(data)
+    try {
+      const data = await queryInviteData({ inviteKey: inviteKey.value })
+      updateInviteInfo(data)
+    }
+    catch (e) {
+      console.error('获取邀请信息失败', e)
+      switchPage('linkExpired')
+    }
   }
 
   const switchToLogin = () => {
@@ -77,7 +84,7 @@ export function useInviteFlow(emits: { (e: 'joinSuccess'): void }) {
 
   const toJoin = async () => {
     try {
-      const data = await acceptInvite({ inviteKey })
+      const data = await acceptInvite({ inviteKey: inviteKey.value })
       updateInviteInfo(data, false)
     }
     catch (e) {
@@ -85,9 +92,41 @@ export function useInviteFlow(emits: { (e: 'joinSuccess'): void }) {
     }
   }
 
-  const openApp = () => {
-    window.open('astronrpa://')
+  const tryOpenApp = (scheme: string, timeout = 2000) => {
+    const start = Date.now()
+    const clear: () => void = () => {
+      clearTimeout(timer)
+      window.removeEventListener('blur', clear)
+    }
+    window.addEventListener('blur', clear)
+
+    window.location.href = scheme
+
+    const timer = setTimeout(() => {
+      if (Date.now() - start >= timeout + 100)
+        return
+
+      Modal.warn({
+        title: '安装提示',
+        content: '您当前未安装星辰RPA应用，是否前往下载？',
+        okText: '去下载',
+        onOk() {
+          window.open('https://www.iflyrpa.com', '_blank')
+        },
+      })
+    }, timeout)
   }
+
+  const openApp = () => {
+    tryOpenApp('astronrpa://')
+  }
+
+  watch(() => route.query.inviteKey, (newKey) => {
+    if (newKey && newKey !== inviteKey.value) {
+      inviteKey.value = newKey as string
+      getInviteInfo()
+    }
+  })
 
   getInviteInfo()
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AuthType, Edition, InviteInfo } from '../../interface'
+import type { AuthType, Edition, InviteInfo, Platform } from '../../interface'
 
 import ForgotPassword from './ForgotPassword.vue'
 import { useAuthFlow } from './hooks/useAuthFlow'
@@ -10,15 +10,19 @@ import SetPassword from './SetPassword.vue'
 import TenantSelect from './TenantSelect.vue'
 
 const props = defineProps({
+  platform: { type: String as () => Platform },
   baseUrl: { type: String },
   inviteInfo: { type: Object as () => InviteInfo, default: () => null },
   edition: { type: String as () => Edition, default: 'saas' },
   authType: { type: String as () => AuthType, default: 'uap' },
+  autoLogin: { type: Boolean, default: true },
 })
 const emits = defineEmits(['finish'])
 
 const {
   currentFormMode,
+  cacheFormData,
+  preFormMode,
   tenants,
   running,
   preLogin,
@@ -40,18 +44,20 @@ defineExpose({
   <div class="auth-container-content h-[540px]">
     <Login
       v-if="currentFormMode === 'login'"
+      :key="`${edition}_${authType}_login`"
       :invite-info="inviteInfo"
       :edition="edition"
       :auth-type="authType"
       :running="running"
       @submit="preLogin"
       @switch-to-register="() => switchMode('register')"
-      @forget-password="() => switchMode('forgotPassword')"
+      @forgot-password="() => switchMode('forgotPassword')"
       @modify-password="() => switchMode('modifyPassword')"
     />
 
     <Register
       v-else-if="currentFormMode === 'register'"
+      :key="`${edition}_${authType}_register`"
       :edition="edition"
       :auth-type="authType"
       :running="running"
@@ -62,23 +68,31 @@ defineExpose({
 
     <ForgotPassword
       v-else-if="['forgotPasswordWithSysUpgrade', 'forgotPassword'].includes(currentFormMode)"
+      :key="`${edition}_${authType}_forgotPassword`"
       :running="running"
       :title="currentFormMode === 'forgotPasswordWithSysUpgrade' ? '系统已升级，请重新设置密码' : ''"
+      v-model="cacheFormData[currentFormMode]"
       @submit="handleForgotPassword"
       @switch-to-login="() => switchMode('login')"
     />
 
     <SetPassword
       v-else-if="['setPasswordWithSysUpgrade', 'setPassword'].includes(currentFormMode)"
+      :key="`${edition}_${authType}_setPassword`"
       :title="currentFormMode === 'setPasswordWithSysUpgrade' ? '系统已升级，请重新设置密码' : ''"
       :running="running"
       :invite-info="inviteInfo"
       @submit="handleSetPassword"
-      @switch-to-login="() => switchMode('login')"
+      @back="() => {
+        ['forgotPasswordWithSysUpgrade', 'forgotPassword'].includes(preFormMode)
+          ? switchMode(preFormMode)
+          : switchMode('register')
+      }"
     />
 
     <ModifyPassword
       v-else-if="['modifyPassword'].includes(currentFormMode)"
+      :key="`${edition}_${authType}_modifyPassword`"
       :running="running"
       :invite-info="inviteInfo"
       :edition="edition"
@@ -89,6 +103,7 @@ defineExpose({
 
     <TenantSelect
       v-else-if="currentFormMode === 'tenantSelect'"
+      :key="`${edition}_${authType}_tenantSelect`"
       :invite-info="inviteInfo"
       :edition="edition"
       :auth-type="authType"

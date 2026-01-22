@@ -1,10 +1,13 @@
 import { getConfigParams } from '@/api/atom'
 import { getComponentDetail } from '@/api/project'
 import { getProcessAndCodeList } from '@/api/resource'
-import { addComponentUse, deleteComponentUse } from '@/api/robot'
+import { addComponentUse, deleteComponentUse, getEditComponentDetail } from '@/api/robot'
+import { OTHER_IN_TYPE } from '@/constants/atom'
 import type { ProcessNode } from '@/corobot/type'
+import { useFlowStore } from '@/stores/useFlowStore'
 import { useProcessStore } from '@/stores/useProcessStore'
 import useProjectDocStore from '@/stores/useProjectDocStore'
+import { isArray, difference, has, isEmpty, some } from 'lodash-es'
 
 export const COMPONENT_KEY_PREFIX = 'Code.Component'
 
@@ -101,9 +104,13 @@ export function getComponentId(key: string) {
 export async function getComponentForm(params: {
   componentId?: string
   version?: string | number
+  context?: 'add' | 'get' | 'update'
 }) {
-  const { componentId, version } = params
-  const info = await getComponentDetail({ componentId })
+  const processStore = useProcessStore()
+  const { componentId, version, context = 'get' } = params
+  const info = context === 'get'
+    ? await getEditComponentDetail({ componentId, robotId: processStore.project.id })
+    : await getComponentDetail({ componentId })
   const processList = await getProcessAndCodeList({ robotId: componentId })
   const mainProcessId = processList.find(item => item.name === '主流程')?.resourceId
   const componentAttrs = await getConfigParams({
@@ -118,7 +125,7 @@ export async function getComponentForm(params: {
   return {
     key: `${COMPONENT_KEY_PREFIX}.${componentId}`,
     title: info.name || '组件名称',
-    version: (version || info.latestVersion) as unknown as string,
+    version: version || info.componentVersion || info.latestVersion,
     src: '',
     comment: '',
     inputList: inputFormItems,
@@ -163,7 +170,7 @@ export function mapAttrToFormItem(attr: RPA.ConfigParamData) {
       types: attr.varType,
       formType: { type: 'RESULT' },
       key: varName,
-      title: attr.varDescribe,
+      title: attr.varDescribe || attr.varName,
       name: varName,
       default: attr.varValue,
       required: false,
@@ -171,14 +178,17 @@ export function mapAttrToFormItem(attr: RPA.ConfigParamData) {
     }
   }
   else {
+    const varValue = safeParse(attr.varValue)
+    const illegal = !isArray(varValue) || isEmpty(varValue) || some(varValue, item => !has(item, 'type') || !has(item, 'value'))
+    
     return {
       types: attr.varType,
-      formType: varTypeToFormTypeMap[attr.varType],
+      formType: varTypeToFormTypeMap[attr.varType] || { type: 'INPUT_VARIABLE_PYTHON' },
       key: attr.varName,
-      title: attr.varDescribe,
+      title: attr.varDescribe || attr.varName,
       name: attr.varName,
-      default: attr.varValue,
       required: true,
+      value: illegal ? [{ type: OTHER_IN_TYPE, value: varValue || '' }] : varValue
     }
   }
 }
@@ -201,9 +211,8 @@ export async function trackComponentUsageChange(operation: () => void | Promise<
   const beforeUsedKeys = getUsedComponentKeySet()
   await operation()
   const afterUsedKeys = getUsedComponentKeySet()
-
-  const deletedKeys = beforeUsedKeys.difference(afterUsedKeys)
-  const addedKeys = afterUsedKeys.difference(beforeUsedKeys)
+  const deletedKeys = new Set(difference([...beforeUsedKeys], [...afterUsedKeys]))
+  const addedKeys = new Set(difference([...afterUsedKeys], [...beforeUsedKeys]))
 
   for (const key of addedKeys) {
     await addComponentUse({
@@ -226,6 +235,9 @@ export async function trackComponentUsageChange(operation: () => void | Promise<
 export function updateFlowNodesComponent(componentId: string, defaultNode: ProcessNode) {
   const processStore = useProcessStore()
   const projectDocStore = useProjectDocStore()
+  const flowStore = useFlowStore()
+
+  const updateParams: { node: RPA.Atom, index: number, process: string }[] = []
 
   processStore.processList.forEach((process) => {
     const nodes = projectDocStore.getProcessNodes(process.resourceId)
@@ -234,12 +246,23 @@ export function updateFlowNodesComponent(componentId: string, defaultNode: Proce
         const oldFormItems = [...node.inputList, ...node.outputList]
         const newNode = {
           ...node,
+          icon: defaultNode.icon,
           version: defaultNode.version,
           inputList: defaultNode.inputList.map(item => ({ ...item, value: oldFormItems.find(i => i.key === item.key)?.value || item.value })),
           outputList: defaultNode.outputList.map(item => ({ ...item, value: oldFormItems.find(i => i.key === item.key)?.value || item.value })),
         }
-        projectDocStore.updateProcessNode([index], [newNode], process.resourceId)
+        updateParams.push({ node: newNode, index, process: process.resourceId })
       }
     })
   })
+
+  flowStore.updataOriginFlowData(updateParams)
+}
+
+function safeParse(str) {
+  try {
+    return JSON.parse(str)
+  } catch {
+    return str
+  }
 }

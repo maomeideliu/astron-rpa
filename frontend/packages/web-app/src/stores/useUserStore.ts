@@ -11,21 +11,18 @@ import router, { findFirstPermittedRoute } from '@/router'
 import { usePermissionStore } from '@/stores/usePermissionStore'
 import { useRunningStore } from '@/stores/useRunningStore'
 
-const ENV = import.meta.env
-
 export const useUserStore = defineStore('user', () => {
   const currentUserInfo = ref()
-  const edition = ref(ENV.VITE_EDITION || 'saas')
-  const authType = ref(ENV.VITE_AUTH_TYPE || 'casdoor')
   const currentTenant = ref<TenantItem | null>(null) // 当前租户
 
   const loginStatus = computed(() => {
     return currentUserInfo.value
   })
 
-  function getUserInfo() {
+  async function getUserInfo() {
     if (!currentUserInfo.value) {
-      currentUserInfo.value = Auth.getUserInfo()
+      const data = await Auth.userInfo()
+      currentUserInfo.value = data
     }
     return currentUserInfo.value
   }
@@ -58,6 +55,8 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function switchTenant(tenant: TenantItem) {
+    if (currentTenant.value?.id === tenant.id) return
+
     currentTenant.value = tenant
     usePermissionStore().reset()
     await usePermissionStore().initPermission()
@@ -72,9 +71,9 @@ export const useUserStore = defineStore('user', () => {
     await Auth.logout()
   }
 
+  getUserInfo()
+
   return {
-    edition,
-    authType,
     currentTenant,
     currentUserInfo,
     loginStatus,

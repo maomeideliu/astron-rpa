@@ -636,7 +636,6 @@ const Handlers = {
         if (Number.isNaN(frameId)) {
           return Utils.success(false)
         }
-        params.key = 'elementIsRender'
         const result = await Tabs.sendTabFrameMessage(tab.id, params, frameId)
         const complete = activeTab.status === 'complete'
         if (result) {
@@ -878,7 +877,9 @@ const Handlers = {
         if (Number.isNaN(frameId)) {
           return Utils.fail(ErrorMessage.FRAME_GET_ERROR, StatusCode.ELEMENT_NOT_FOUND)
         }
-        await Tabs.getAllFrames(tab.id)
+        if (frameId !== 0) { // get frames when frameId not 0
+          await Tabs.getAllFrames(tab.id)
+        }
         try {
           const result = await Tabs.runJS(tab.id, frameId, params)
           return Utils.success(result)
@@ -955,6 +956,9 @@ async function bgHandler(params) {
     }
   }
   catch (error) {
+    if (error.toString().includes('connection')) {
+      return Utils.fail(ErrorMessage.CONTEXT_NOT_FOUND, StatusCode.UNKNOWN_ERROR)
+    }
     return Utils.fail(error.toString(), StatusCode.EXECUTE_ERROR)
   }
 }

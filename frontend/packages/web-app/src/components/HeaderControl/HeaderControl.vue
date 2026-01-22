@@ -1,16 +1,17 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { NiceModal } from '@rpa/components'
 import { Tooltip } from 'ant-design-vue'
 
 import { SettingCenterModal } from '@/components/SettingCenterModal'
-import { VUE_APP_COMMANDER } from '@/constants'
 import { utilsManager } from '@/platform'
 import { usePermissionStore } from '@/stores/usePermissionStore'
+import { useAppConfigStore } from '@/stores/useAppConfig'
 import useUserSettingStore from '@/stores/useUserSetting.ts'
 import { useUserStore } from '@/stores/useUserStore'
 
 import MessageTip from '../MesssageTip/Index.vue'
-
+import Updater from './Updater.vue'
 import ControlButton from './ControlButton.vue'
 import Help from './Help.vue'
 import UserInfo from './UserInfo.vue'
@@ -32,19 +33,23 @@ const props = withDefaults(defineProps<HeaderControlProps>(), ({
 
 useUserSettingStore()
 
+const appStore = useAppConfigStore()
 const userStore = useUserStore()
 const permissionStore = usePermissionStore()
+const { appInfo } = storeToRefs(appStore)
 
 function handleOpenSetting() {
   NiceModal.show(SettingCenterModal)
 }
 
 function handleToControl() {
-  utilsManager.openInBrowser(VUE_APP_COMMANDER)
+  utilsManager.openInBrowser(`${appInfo.value.remotePath}admin/`)
 }
 </script>
 
 <template>
+  <Updater />
+
   <Help />
 
   <Tooltip v-if="props.setting" :title="$t('setting')">

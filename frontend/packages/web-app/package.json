@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "tsc": "vue-tsc --noEmit",
+    "set-env": "node ./env.js",
     "build": "vite build",
     "build:analyze": "vite build --mode=analyze",
     "build:debug": "vite build --mode=debug",
@@ -43,7 +44,8 @@
     "nanoid": "^5.0.7",
     "pdf-vue3": "^1.0.12",
     "vxe-pc-ui": "4.3.91",
-    "vxe-table": "4.9.35"
+    "vxe-table": "4.9.35",
+    "yaml": "^2.8.2"
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.12",

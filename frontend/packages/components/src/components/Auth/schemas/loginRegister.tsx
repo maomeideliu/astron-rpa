@@ -20,7 +20,7 @@ export function accountLoginFormConfig(isInvite = false, edition = 'saas', authT
           { ...fieldFactories.phone(), placeholder: '请输入账号(手机号)' },
           fieldFactories.password(true),
           fieldFactories.agreement(),
-          fieldFactories.remember(),
+          { ...fieldFactories.remember(), hidden: () => isInvite },
         ],
         actionsRender: ({ handleEvents, loading }: { handleEvents?: (event: string) => void, loading?: boolean }) => (
           <div class="w-full absolute bottom-0">
@@ -40,7 +40,7 @@ export function accountLoginFormConfig(isInvite = false, edition = 'saas', authT
     case 'enterprise_uap': // 企业版无注册、忘记密码功能，支持修改密码
       conf = {
         fields: [
-          fieldFactories.phone(),
+          { ...fieldFactories.phone(), placeholder: '请输入账号(手机号)' },
           fieldFactories.password(true),
           fieldFactories.agreement(),
           {
@@ -124,7 +124,7 @@ export function phoneLoginFormConfig(isInvite = false, edition = 'saas', authTyp
       {
         ...fieldFactories.captcha(),
         sendCaptcha: async (phone: string) => {
-          await sendCaptcha(phone, false)
+          await sendCaptcha(phone, 'login', false)
         },
       },
       fieldFactories.agreement(),
@@ -159,7 +159,7 @@ export function personalRegisterFormConfig(formData: any, isInvite = false, edit
           {
             ...fieldFactories.captcha(),
             sendCaptcha: async (phone: string) => {
-              await sendCaptcha(phone, true)
+              await sendCaptcha(phone, 'register', true)
             },
           },
           fieldFactories.agreement(),
@@ -222,7 +222,7 @@ export const forgotPasswordFormConfig: FormConfig = {
     {
       ...fieldFactories.captcha(),
       sendCaptcha: async (phone: string) => {
-        await sendCaptcha(phone, false)
+        await sendCaptcha(phone, 'set_password', false)
       },
     },
   ],
@@ -270,7 +270,8 @@ export function modifyPasswordFormConfig(formData: any, isInvite: boolean): Form
   return {
     layout: 'vertical',
     fields: [
-      { ...fieldFactories.account(), key: 'loginName' },
+      // { ...fieldFactories.account(), key: 'loginName' },
+      { ...fieldFactories.phone(), placeholder: '请输入账号(手机号)' },
       { ...fieldFactories.password(true), key: 'oldPassword' },
       { ...fieldFactories.password(), key: 'newPassword', placeholder: '请输入新密码' },
       { ...fieldFactories.confirmPassword(formData, 'newPassword'), placeholder: '再次输入新密码' },

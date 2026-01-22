@@ -20,6 +20,7 @@ class AtomicInfo:
 class ProjectInfo:
     project_id: str = ""
     project_name: str = ""
+    project_icon: str = ""
     mode: str = ""
     version: str = ""
     requirement: dict = None
@@ -30,6 +31,7 @@ class ProjectInfo:
         return {
             "project_id": self.project_id,
             "project_name": self.project_name,
+            "project_icon": self.project_icon,
             "mode": self.mode,
             "version": self.version,
             "requirement": self.requirement,
@@ -41,6 +43,7 @@ class ProjectInfo:
         return cls(
             project_id=data.get("project_id", ""),
             project_name=data.get("project_name", ""),
+            project_icon=data.get("project_icon", ""),
             mode=data.get("mode", ""),
             version=data.get("version", ""),
             requirement=data.get("requirement", {}),
@@ -57,11 +60,13 @@ class ProcessInfo:
     import_python: set = None
     breakpoint: set = None
     process_meta: list = None
+    process_params: list = None
 
     def __init__(self):
         self.import_python = set()
         self.breakpoint = set()
         self.process_meta = []
+        self.process_params = []
 
     def __json__(self):
         return {
@@ -71,6 +76,7 @@ class ProcessInfo:
             "process_name": self.process_name,
             "breakpoint": list(self.breakpoint),
             "process_meta": self.process_meta,
+            "process_params": self.process_params,
         }
 
     @classmethod
@@ -82,6 +88,7 @@ class ProcessInfo:
         instance.process_name = data.get("process_name", "")
         instance.breakpoint = set(data.get("breakpoint", []))
         instance.process_meta = data.get("process_meta", [])
+        instance.process_params = data.get("process_params", [])
         return instance
 
 

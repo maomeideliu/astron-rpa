@@ -1,6 +1,5 @@
 import { NiceModal } from '@rpa/components'
 import { message } from 'ant-design-vue'
-import { throttle } from 'lodash-es'
 
 import BUS from '@/utils/eventBus'
 
@@ -107,11 +106,6 @@ function insertHtmlAtCaret(html: string) {
   selection.addRange(range)
 }
 
-export const handleInput = throttle((event: Event, itemData: RPA.AtomDisplayItem) => {
-  const target = event.target as HTMLDivElement
-  generateHtmlVal(target, itemData)
-}, 500)
-
 export function generateHtmlVal(target: HTMLDivElement, itemData: RPA.AtomDisplayItem) {
   const { isExpr, formType, types } = itemData
   const nodeList = target.childNodes
@@ -205,7 +199,7 @@ export function formBtnHandle(itemData: RPA.AtomDisplayItem, itemType: string, e
         itemData.value = [{ type: ELEMENT_IN_TYPE, value: res.value, data: res.data }]
         flowStore.setFormItemValue(itemData.key, itemData.value, id || flowStore.activeAtom.id)
       })
-      useFormPick(itemData.formType.params.use, pickLoading, elementPickModal)
+      useFormPick(itemData.formType.params.use, pickLoading, elementPickModal, itemData)
       break
     case ATOM_FORM_TYPE.CVPICK:
       BUS.$once('cv-pick-done', (res: any) => {

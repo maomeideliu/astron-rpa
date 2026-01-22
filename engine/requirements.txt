@@ -5,6 +5,7 @@ astronverse-baseline
 astronverse-browser
 astronverse-browser-bridge
 astronverse-browser-plugin
+astronverse-cua
 astronverse-database
 astronverse-dataprocess
 astronverse-datatable
@@ -26,7 +27,6 @@ astronverse-script
 astronverse-smart
 astronverse-software
 astronverse-system
-astronverse-tools
 astronverse-trigger
 astronverse-verifycode
 astronverse-vision

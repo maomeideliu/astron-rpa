@@ -1,19 +1,21 @@
+import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from typing import AsyncIterator
+
+from app.dependencies import get_ws_service
+from app.internal import admin
+from app.logger import get_logger
+from app.middlewares.tracing import RequestTracingMiddleware
+from app.redis import close_redis_pool, init_redis_pool
+from app.routers import api_keys, executions, healthcheck, user, websocket, workflows
 from app.routers.streamable_mcp import (
     handle_streamable_http,
     session_manager,
     tools_config,
 )
-from app.redis import init_redis_pool, close_redis_pool
-from app.internal import admin
-from app.routers import websocket, workflows, executions, api_keys, user
-from app.middlewares.tracing import RequestTracingMiddleware
-from app.logger import get_logger
-from app.dependencies import get_ws_service
-import os
 
 logger = get_logger(__name__)
 
@@ -54,6 +56,7 @@ app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(workflows.router)
 app.include_router(executions.router)
 app.include_router(api_keys.router)
+app.include_router(healthcheck.router)
 app.include_router(user.router)
 app.include_router(websocket.router)
 app.mount("/mcp", handle_streamable_http)  # APISIX增加路由，解决307重定向问题

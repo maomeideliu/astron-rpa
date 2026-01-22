@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import time
+from urllib.parse import unquote
 from astronverse.actionlib import ReportFlow, ReportType, ReportFlowStatus
 from astronverse.executor import ExecuteStatus
 from astronverse.executor.debug.apis.ws import Ws
@@ -13,6 +14,8 @@ from astronverse.executor.error import (
     MSG_FLOW_INIT_SUCCESS,
     MSG_TASK_EXECUTION_START,
     MSG_TASK_EXECUTION_END,
+    BaseException,
+    MSG_EXECUTION_ERROR,
 )
 from astronverse.executor.flow.flow_svc import FlowSvc
 from astronverse.executor.logger import logger
@@ -29,7 +32,6 @@ def flow_start(args, conf):
     flow.gen_code(
         path=svc.conf.gen_core_path,
         project_id=args.project_id,
-        project_name=args.project_name,
         mode=args.mode,
         version=args.version,
         process_id=args.process_id,
@@ -38,9 +40,7 @@ def flow_start(args, conf):
     )
 
 
-def debug_start(args, conf):
-    svc = DebugSvc(conf=conf, debug_model=args.debug == "y")
-
+def debug_start(args, svc):
     # Ws服务
     ws = Ws(svc=svc)
     if Config.open_log_ws:
@@ -115,7 +115,7 @@ def start():
     parser.add_argument("--port", default="13158", help="本地端口号", required=False)
     parser.add_argument("--gateway_port", default="13159", help="网关端口", required=False)
     parser.add_argument("--project_id", default="", help="启动的工程id", required=True)
-    parser.add_argument("--project_name", default="", help="启动的工程名称", required=False)
+    parser.add_argument("--project_name", default="", help="启动的工程名称[废弃]", required=False)
     parser.add_argument("--mode", default="EDIT_PAGE", help="运行场景", required=False)
     parser.add_argument("--version", default="", help="运行版本", required=False)
     parser.add_argument("--run_param", default="", help="运行参数", required=False)
@@ -128,7 +128,7 @@ def start():
 
     parser.add_argument("--log_ws", default="y", help="[ws通信]ws总开关 y/n", required=False)
     parser.add_argument("--wait_web_ws", default="n", help="[ws通信]等待前端ws连接 y/n", required=False)
-    parser.add_argument("--wait_tip_ws", default="y", help="[ws通信]开启并等待右下角ws连接 y/n", required=False)
+    parser.add_argument("--wait_tip_ws", default="n", help="[ws通信]开启并等待右下角ws连接 y/n", required=False)
 
     parser.add_argument("--resource_dir", default="", help="资源目录", required=False)
     parser.add_argument("--recording_config", default="", help="录屏", required=False)
@@ -141,9 +141,10 @@ def start():
     Config.gateway_port = args.gateway_port
     Config.exec_id = args.exec_id
     Config.project_id = args.project_id
-    if args.project_name:
-        Config.project_name = args.project_name
+    # if args.project_name:
+    #     Config.project_name = unquote(args.project_name)
     if args.resource_dir:
+        args.resource_dir = unquote(args.resource_dir)
         Config.resource_dir = args.resource_dir
 
     Config.open_log_ws = args.log_ws == "y"
@@ -153,6 +154,7 @@ def start():
 
     if args.run_param:
         try:
+            args.run_param = unquote(args.run_param)
             if os.path.exists(args.run_param):
                 with open(args.run_param, "r", encoding="utf-8") as f:
                     args.run_param = json.load(f)
@@ -164,16 +166,26 @@ def start():
         args.run_param = {}
     if args.recording_config:
         try:
+            args.recording_config = unquote(args.recording_config)
             args.recording_config = json.loads(args.recording_config)
         except Exception as e:
             args.recording_config = {}
     else:
         args.recording_config = {}
 
-    # 生成代码
-    flow_start(conf=Config, args=args)
-
-    # 执行代码
-    debug_start(conf=Config, args=args)
-
+    svc = None
+    try:
+        # 生成代码
+        flow_start(conf=Config, args=args)
+        # 执行代码
+        svc = DebugSvc(conf=Config, debug_model=args.debug == "y")
+        debug_start(svc=svc, args=args)
+    except BaseException as e:
+        if svc:
+            svc.end(ExecuteStatus.FAIL, reason=e.message)
+        return
+    except Exception as e:
+        if svc:
+            svc.end(ExecuteStatus.FAIL, reason=MSG_EXECUTION_ERROR)
+        return
     logger.debug("end")

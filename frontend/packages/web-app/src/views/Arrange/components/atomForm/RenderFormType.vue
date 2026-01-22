@@ -28,8 +28,9 @@ import AtomScriptParams from './AtomScriptParams.vue'
 import AtomSlider from './AtomSlider.vue'
 import { createDom } from './hooks/useAtomVarPopover'
 import { isConditionalKeys } from './hooks/useBaseConfig'
-import useRenderFormType, { formBtnHandle, generateInputVal, handleInput, handlePaste, inputListListener, syncCurrentAtomData } from './hooks/useRenderFormType'
+import useRenderFormType, { formBtnHandle, generateHtmlVal, generateInputVal, handlePaste, inputListListener, syncCurrentAtomData } from './hooks/useRenderFormType'
 import ProcessParam from './ProcessParam.vue'
+import { debounce } from 'lodash-es'
 
 const { iconStyle, itemData, itemType, varType } = defineProps({
   iconStyle: {
@@ -52,6 +53,7 @@ const { iconStyle, itemData, itemType, varType } = defineProps({
 
 const { handleModalButton, handleTextareaModal, handleHTMLContentPaste } = useRenderFormType()
 const isShowFormItem = inject<Ref<boolean>>('showAtomFormItem', ref(true))
+const atomFormDisabled = inject<Ref<boolean>>('atomFormDisabled', ref(false)) // 自定义组件设置预览禁止输入
 const cursorStore = useCursorStore()
 const container = ref(generateInputVal(itemData))
 const selectValue = ref(generateInputVal(itemData))
@@ -123,6 +125,11 @@ function handleAtomRemoteSelect(val: any) {
   syncCurrentAtomData(itemData, false)
 }
 
+const handleInput = debounce((event: Event, itemData: RPA.AtomDisplayItem) => {
+  const target = event.target as HTMLDivElement
+  generateHtmlVal(target, itemData)
+}, 500)
+
 inputListListener(itemData, itemType)
 </script>
 
@@ -139,8 +146,8 @@ inputListListener(itemData, itemType)
   <div
     v-if="itemType === ATOM_FORM_TYPE.INPUT"
     :id="`rpa_input_${itemData.key}`"
-    class="editor flex-1 min-h-5" :class="{ 'cursor-not-allowed': !isEdit }"
-    :contenteditable="isEdit"
+    class="editor flex-1 min-h-5" :class="{ 'cursor-not-allowed': !isEdit || atomFormDisabled }"
+    :contenteditable="isEdit && !atomFormDisabled"
     @input="(e) => handleInput(e, itemData)"
     @paste="(e) => handlePaste(e, itemData)"
     @blur="cursorStore.handleBlur"
@@ -207,7 +214,7 @@ inputListListener(itemData, itemType)
   </AtomPopover>
   <!-- CV图片拾取按钮 -->
   <CvPickBtn v-if="itemType === ATOM_FORM_TYPE.CVPICK" type="icon" entry="atomFormBtn" class="h-[32px] w-[32px] justify-center" @click="clickHandle" />
-  <!-- 卓越中心共享文件选择 -->
+  <!-- 控制台共享文件选择 -->
   <AtomRemoteFiles
     v-if="itemType === ATOM_FORM_TYPE.REMOTEFOLDERS"
     :render-data="itemData"
@@ -390,13 +397,15 @@ inputListListener(itemData, itemType)
 .editor {
   width: calc(100% - 42px);
   padding: 0 5px;
-  white-space: pre-wrap;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 24px;
+  line-height: 24px;
   --custom-cursor-size: 18px;
   margin-right: 3px;
-  max-height: 300px;
-  overflow: auto;
   &::-webkit-scrollbar {
-    width: 4px;
+    height: 0px;
   }
 
   &:focus {

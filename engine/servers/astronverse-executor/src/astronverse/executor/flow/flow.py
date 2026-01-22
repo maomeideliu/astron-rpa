@@ -31,13 +31,12 @@ class Flow:
                 )
 
                 component_path = os.path.join(path, "c{}".format(component_id))
-                self.gen_code(path=component_path, project_id=component_id, project_name="", mode="", version=version)
+                self.gen_code(path=component_path, project_id=component_id, mode="", version=version)
 
     def gen_code(
         self,
         path: str,
         project_id: str,
-        project_name: str,
         mode: str,
         version: str,
         process_id: str = "",
@@ -45,12 +44,20 @@ class Flow:
         end_line=0,
     ):
         os.makedirs(path, exist_ok=True)
+        package = path.rstrip("/").split("/")[-1]
 
         # 1. 获取全局变量
         global_var = self._global_display(project_id, mode, version)
         requirement = self._requirement_display(project_id, mode, version)
+        project_info = self.svc.storage.project_info(project_id=project_id, mode=mode, version=version)
+        if project_info:
+            project_name = project_info.get("name", "机器人")
+            project_icon = project_info.get("iconUrl", "")
+        else:
+            project_name = "机器人"
+            project_icon = ""
         self.svc.add_project_info(
-            project_id, mode, version, project_name, requirement, self.svc.conf.gateway_port, global_var
+            project_id, mode, version, project_name, requirement, self.svc.conf.gateway_port, global_var, project_icon
         )
 
         # 2. 生成流程相关数据
@@ -89,8 +96,7 @@ class Flow:
                     )
                 else:
                     res, map_res = self._flow_display(project_id, mode, version, resource_id, name)
-
-                self.svc.add_process_info(project_id, resource_id, category, name, file_name)
+                self.svc.add_process_info(project_id, resource_id, category, name, file_name, [])
                 with open(os.path.join(path, file_name), "w", encoding="utf-8") as file:
                     file.write(res)
                     pass
@@ -109,7 +115,19 @@ class Flow:
                 module_index += 1
                 res = self._module_display(project_id, mode, version, resource_id, name)
 
-                self.svc.add_process_info(project_id, resource_id, category, name, file_name)
+                param_list = self.svc.storage.param_list(
+                    project_id=project_id, mode=mode, version=version, module_id=resource_id
+                )
+                for p in param_list:
+                    param = self.svc.param.parse_param(
+                        {
+                            "value": str_to_list_if_possible(p.get("varValue")),
+                            "types": p.get("varType"),
+                            "name": p.get("varName"),
+                        }
+                    )
+                    p["varValue"] = param.show_value()
+                self.svc.add_process_info(project_id, resource_id, category, name, file_name, param_list)
                 with open(os.path.join(path, file_name), "w", encoding="utf-8") as file:
                     file.write(res)
                     pass
@@ -140,7 +158,8 @@ class Flow:
         for k, v in global_var.items():
             global_code += f"gv[{k!r}] = {v}\n"
         tpl_content = tpl_content.replace("{{GLOBAL}}", global_code)
-        package_py_content = tpl_content.replace("{{PACKAGE_PATH}}", repr(os.path.join(path, "package.json")))
+        tpl_content = tpl_content.replace("{{PACKAGE_PATH}}", repr(os.path.join(path, "package.json")))
+        package_py_content = tpl_content.replace("{{PACKAGE}}", package)
         with open(os.path.join(path, "package.py"), "w", encoding="utf-8") as file:
             file.write(package_py_content)
 
@@ -188,7 +207,7 @@ class Flow:
         for g in global_list:
             param = self.svc.param.parse_param(
                 {
-                    "value": g.get("varValue"),
+                    "value": str_to_list_if_possible(g.get("varValue")),
                     "types": g.get("varType"),
                     "name": g.get("varName"),
                 }
@@ -200,22 +219,18 @@ class Flow:
         """
         模块生成 python模块
         """
-        # 1. 获取配置参数
-        param_list = self.svc.storage.param_list(
-            project_id=project_id, mode=mode, version=version, process_id=module_id
-        )
-
-        # 2. 获取模块原始代码
+        # 获取模块数据
         module_code = self.svc.storage.module_detail(
             project_id=project_id, mode=mode, version=version, module_id=module_id
         )
 
-        # 3. 如果没有配置参数，直接返回原始代码
-        if not param_list:
-            return module_code
+        # 兼容开始
+        if "rpahelper" in module_code:
+            # 老代码
+            module_code = module_code.replace("rpahelper", "astronverse.workflowlib")
+        # 兼容结束
 
-        # 4. 注入配置参数到 main(args) 函数中
-        return self._inject_params_to_module(module_code, param_list)
+        return module_code
 
     def _smart_component_display(
         self, project_id: str, mode: str, version: str, smart_id: str, smart_version: str

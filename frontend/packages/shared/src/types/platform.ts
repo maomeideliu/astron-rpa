@@ -30,10 +30,13 @@ export interface WindowManager {
   emitTo: (msg: WindowMessage) => Promise<any>
 }
 
+export type WindowPosition = 'left_top' | 'right_top' | 'left_bottom' | 'right_bottom' | 'top_center' | 'center' | 'right_center'
+
 // 窗口创建选项
 export interface CreateWindowOptions {
-  url?: string
-  center?: boolean
+  url: string
+  position?: WindowPosition
+  offset?: number
   x?: number
   y?: number
   width?: number
@@ -44,11 +47,12 @@ export interface CreateWindowOptions {
   maxHeight?: number
   resizable?: boolean
   title?: string
+  label?: string
   fullscreen?: boolean
   focus?: boolean
   transparent?: boolean
   maximized?: boolean
-  visible?: boolean
+  show?: boolean
   decorations?: boolean
   alwaysOnTop?: boolean
   contentProtected?: boolean
@@ -91,9 +95,10 @@ export interface UtilsManager {
   getUserPath: () => Promise<string>
   getBuildInfo: () => Promise<string>
   getSystemEnv: () => Promise<string>
+  getResourcePath: () => Promise<string>
   invoke: (channel: string, ...args: any[]) => Promise<any>
   readFile: (fileName: string, dir?: string) => Promise<any>
-  saveFile: (fileName: string, buffer: ArrayBuffer) => Promise<void>
+  saveFile: (fileName: string, buffer: ArrayBuffer | string) => Promise<boolean>
   playVideo: (videoPath: string) => void
   pathJoin: (dirArr: Array<string>) => Promise<any>
   shellopen: (path: string) => Promise<void>
@@ -121,12 +126,13 @@ export interface UpdateManifest {
 
 // 更新信息
 export interface UpdateInfo {
-  shouldUpdate: boolean
+  couldUpdate: boolean
+  downloaded?: boolean
   manifest?: UpdateManifest | null
 }
 
 // 更新管理器
 export interface UpdaterManager {
   checkUpdate: () => Promise<UpdateInfo>
-  installUpdate: (progressCallback: (percent: number) => void) => Promise<void>
+  quitAndInstall: () => void
 }

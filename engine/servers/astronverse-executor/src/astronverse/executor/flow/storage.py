@@ -77,6 +77,11 @@ def merge_dicts(flow, full_flow):
 
 class IStorage(ABC):
     @abstractmethod
+    def project_info(self, project_id: str, mode: str, version: str = "") -> dict:
+        """获取工程的信息"""
+        pass
+
+    @abstractmethod
     def process_list(self, project_id: str, mode: str, version: str) -> list:
         """获取工程的流程列表"""
         pass
@@ -161,6 +166,23 @@ class HttpStorage(IStorage):
             },
         )
         return res
+
+    def project_info(self, project_id: str, mode: str, version: str = "") -> dict:
+        """获取工程的信息"""
+
+        data = {
+            "robotId": project_id,
+        }
+        if mode:
+            data["mode"] = mode
+        if version:
+            data["robotVersion"] = int(version)
+
+        try:
+            res = self.__http__("/api/robot/robot-icon/info", None, data)
+            return res
+        except Exception as e:
+            return {}
 
     def process_list(self, project_id: str, mode: str, version: str) -> list:
         """获取工程的流程列表"""
@@ -255,13 +277,16 @@ class HttpStorage(IStorage):
         else:
             return ""
 
-    def param_list(self, project_id: str, mode: str, version: str, process_id: str) -> list:
+    def param_list(self, project_id: str, mode: str, version: str, process_id: str = "", module_id: str = "") -> list:
         """运行参数列表"""
 
         data = {
             "robotId": project_id,
-            "processId": process_id,
         }
+        if process_id:
+            data["processId"] = process_id
+        if module_id:
+            data["moduleId"] = module_id
         if mode:
             data["mode"] = mode
         if version:

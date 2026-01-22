@@ -4,7 +4,6 @@ import sys
 import threading
 import time
 from datetime import datetime, timedelta
-
 from astronverse.executor.logger import logger
 
 
@@ -55,7 +54,6 @@ class RecordingTool:
                 return
             url = os.path.join(os.path.abspath(self.svc.conf.resource_dir), "ffmpeg.exe")
             if not os.path.exists(url):
-                logger.warning("ffmpeg.exe not found")
                 return
 
             self.start_time = int(time.time())

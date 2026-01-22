@@ -3,8 +3,8 @@ import { Dropdown, Menu } from 'ant-design-vue'
 import { ref } from 'vue'
 
 import { switchTenant, tenantList } from '../../api/login'
-import type { TenantItem, AuthType } from '../../interface'
-import { getSelectedTenant } from '../../utils/remember'
+import type { AuthType, TenantItem } from '../../interface'
+import { getSelectedTenant, saveSelectedTenant } from '../../utils/remember'
 import Consult from '../Base/Consult/Index.vue'
 import Loading from '../Base/Loading.vue'
 import TenantItemComponent from '../Base/TenantItem.vue'
@@ -56,6 +56,7 @@ async function toggleTenant(tenant: TenantItem) {
   }
   selectedTenant.value = tenant
   await emit('switchTenant', tenant)
+  saveSelectedTenant(tenant.id)
   loadingRef.value?.isLoading({ isLoading: false, immediate: true })
 }
 
@@ -88,7 +89,7 @@ const open = ref(false)
               @click="() => toggleTenant(tenant)"
             />
           </Menu.Item>
-          <Menu.Item class="!border-0 !p-[0] !mt-[8px]" v-if="authType !== 'casdoor'">
+          <Menu.Item v-if="authType !== 'casdoor'" class="!border-0 !p-[0] !mt-[8px]">
             <Consult trigger="button" :auth-type="authType" :button-conf="{ buttonType: 'button', buttonTxt: '创建新的工作空间' }" :consult="{ consultTitle: '创建新的工作空间', consultType: 'consult' }" />
           </Menu.Item>
         </Menu>

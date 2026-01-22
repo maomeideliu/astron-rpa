@@ -17,6 +17,7 @@
    - OpenAPI Service: http://localhost:8020
    - Resource Service: http://localhost:8030
    - Robot Service: http://localhost:8040
+   - RPA Auth Service: http://localhost:10251
    - MinIO Console: http://localhost:9001
 
 ## 🛑 Stop Services
@@ -33,6 +34,7 @@ docker compose stop
 | openapi-service | 8020 | Python FastAPI OpenAPI service |
 | resource-service | 8030 | Java Spring Boot resource service |
 | robot-service | 8040 | Java Spring Boot robot service |
+| rpa-auth | 10251 | Java Spring Boot authentication service |
 | mysql | 3306 | MySQL 8.4.6 database |
 | redis | 6379 | Redis 8.0 cache |
 | minio | 9000/9001 | MinIO object storage |

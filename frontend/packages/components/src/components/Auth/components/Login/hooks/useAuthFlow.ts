@@ -27,21 +27,34 @@ import type {
   RegisterMode,
   TenantItem,
 } from '../../../interface'
-import { clearRememberUser, getRememberUser, getSelectedTenant, saveRememberUser, saveSelectedTenant, saveUserInfo } from '../../../utils/remember'
+import { clearRememberUser, getRememberUser, getSelectedTenant, saveRememberUser, saveSelectedTenant } from '../../../utils/remember'
 
 export interface UseAuthFlowOptions {
   baseUrl?: string
+  platform?: Platform
   inviteInfo?: InviteInfo
   authType?: AuthType
   edition?: Edition
+  autoLogin?: boolean
 }
 
 export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'): void }) {
-  const platform = ref<Platform>('admin')
+  const platform = ref<Platform>(opts.platform || 'admin')
+  const preFormMode = ref<AuthFormMode>('login')
   const currentFormMode = ref<AuthFormMode>('login')
   const tenants = ref<TenantItem[]>([])
   const tempToken = ref<string>('')
   const running = ref<AsyncAction>('IDLE')
+  const cacheFormData = ref<Record<string, any>>({})
+
+  const setCacheFormData = (data: any) => {
+    const cacheKey = currentFormMode.value
+    cacheFormData.value[cacheKey] = data
+  }
+
+  const resetCacheFormData = () => {
+    cacheFormData.value = {}
+  }
 
   const run = async <T>(action: AsyncAction, task: () => Promise<T>) => {
     running.value = action
@@ -57,7 +70,9 @@ export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'
     () => opts.baseUrl,
     (newVal) => {
       newVal && setBaseUrl(newVal)
-      platform.value = newVal && (newVal.includes('localhost') || newVal.includes('127.0.0.1')) ? 'client' : 'admin'
+      if (!opts.platform) {
+        platform.value = newVal && (newVal.includes('localhost') || newVal.includes('127.0.0.1')) ? 'client' : 'admin'
+      }
     },
     { immediate: true },
   )
@@ -103,6 +118,11 @@ export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'
         return
       }
 
+      if (tenants.value.length === 0) {
+        message.info('当前账号暂无可用空间，请联系管理员开通空间后再登录')
+        return
+      }
+
       switchMode('tenantSelect')
     }
     catch (e) {
@@ -113,7 +133,7 @@ export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'
   const preLogin = async (data: LoginFormData, mode: LoginMode, autoLogin = true) => run(mode, async () => {
     try {
       const params = { ...data, loginType: mode }
-      if (opts.edition === 'saas') {
+      if (opts.edition === 'saas' && opts.authType === 'uap') {
         const history = await isHistory({ phone: params.phone })
         if (history) {
           if (mode === 'PASSWORD')
@@ -128,7 +148,7 @@ export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'
       mode === 'PASSWORD' && params.remember && account && params.password ? saveRememberUser(account, params.password, opts.edition, opts.authType) : clearRememberUser()
       delete params.remember
       delete params.agreement
-      const token = await preAuthenticate({ ...params, platform: platform.value })
+      const token = await preAuthenticate({ ...params, scene: 'login', platform: platform.value })
       tempToken.value = token
       switchToTenants(autoLogin)
     }
@@ -139,10 +159,8 @@ export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'
 
   const handleLogin = async (tenantId: string) => {
     try {
-      const userInfo = await login({ tenantId, tempToken: tempToken.value })
-      console.log(userInfo)
+      await login({ tenantId, tempToken: tempToken.value })
       saveSelectedTenant(tenantId)
-      saveUserInfo(userInfo)
       emits('finish')
     }
     catch (e) {
@@ -156,7 +174,7 @@ export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'
         const token = await register(data as RegisterFormData)
         message.success('注册账号成功')
         tempToken.value = token
-        if (!Object.prototype.hasOwnProperty.call(data, 'password'))
+        if (!Object.prototype.hasOwnProperty.call(data, 'password') || !(data as RegisterFormData).password)
           switchMode('setPassword')
         else switchToTenants()
         return
@@ -172,10 +190,11 @@ export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'
 
   const handleForgotPassword = async (data: LoginFormData) => run('FORGOT_PASSWORD', async () => {
     try {
+      setCacheFormData(data)
       const params: LoginFormData = { ...data, loginType: 'CODE' }
       delete params.remember
       delete params.agreement
-      const token = await preAuthenticate({ ...params, platform: platform.value })
+      const token = await preAuthenticate({ ...params, scene: 'set_password', platform: platform.value })
       tempToken.value = token
       switchMode(currentFormMode.value === 'forgotPassword' ? 'setPassword' : 'setPasswordWithSysUpgrade')
     }
@@ -191,8 +210,9 @@ export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'
   })
 
   const handleModifyPassword = async (data: LoginFormData) => run('MODIFY_PASSWORD', async () => {
-    await modifyPassword(data)
+    const token = await modifyPassword(data)
     message.success('密码修改成功')
+    tempToken.value = token
     switchToTenants()
   })
 
@@ -200,7 +220,12 @@ export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'
     await handleLogin(tenantId)
   }
 
-  const switchMode = (mode: AuthFormMode) => (currentFormMode.value = mode)
+  const switchMode = (mode: AuthFormMode) => {
+    preFormMode.value = currentFormMode.value
+    currentFormMode.value = mode
+    if (mode === 'login')
+      resetCacheFormData()
+  }
 
   const autoPreLogin = () => {
     const remembered = getRememberUser()
@@ -215,10 +240,12 @@ export function useAuthFlow(opts: UseAuthFlowOptions = {}, emits: { (e: 'finish'
       preLogin(params, 'PASSWORD', false)
     }
   }
-  !opts.inviteInfo && checkLoginStatus()
+  (!opts.inviteInfo || !opts.autoLogin) && checkLoginStatus()
 
   return {
     currentFormMode,
+    cacheFormData,
+    preFormMode,
     tenants,
     running,
     preLogin,

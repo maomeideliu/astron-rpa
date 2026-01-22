@@ -20,6 +20,7 @@ class PickerRequire(BaseModel):
     record_action: Optional[RecordAction] = None  # 仅在RECORD时使用
     smart_component_action: Optional[SmartComponentAction] = None  # 仅在pick_sign是SMART_COMPONENT时使用
     data: str = None
+    pick_mode: str = None
     ext_data: dict = {}
 
 
@@ -210,6 +211,8 @@ class PickerRequestHandler:
                 # 处理拾取数据
                 if input_data.pick_type in [PickerType.SIMILAR, PickerType.BATCH]:
                     input_data.data = self._process_element_data(input_data)
+                    if input_data.pick_mode:
+                        input_data.data["pick_mode"] = input_data.pick_mode
 
                 # 发送拾取开始信号
                 self.svc.tag(SVCSign.PICKER)
@@ -320,14 +323,13 @@ class PickerRequestHandler:
     def _process_element_data(self, input_data: PickerRequire):
         """处理元素数据"""
         from astronverse.locator.locator import LocatorManager
-        from astronverse.picker.utils.param_utils import global_to_dict, special_eval_element
+        from astronverse.picker.utils.params import complex_param_parser
 
         global_data = input_data.ext_data.get("global", [])
-        env, id2name = global_to_dict(global_data)
         data = (
             LocatorManager.parse_element_json(input_data.data) if isinstance(input_data.data, str) else input_data.data
         )
-        return special_eval_element(data, env, id2name)
+        return complex_param_parser(complex_param=data, global_data=global_data)
 
     async def _send_response(self, ws, result: dict[str, Any]):
         """发送响应消息"""

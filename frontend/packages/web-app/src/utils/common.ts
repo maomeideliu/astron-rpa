@@ -161,6 +161,16 @@ export function blob2Text<T>(blob: Blob) {
   })
 }
 
+/**
+ * blob转file
+ * @param blob blob对象
+ * @param fileName 文件名
+ * @returns
+ */
+export function blob2File(blob: Blob, fileName: string) {
+  return new File([blob], fileName, { type: blob.type })
+}
+
 export function text2LogArray(text: string) {
   try {
     // 按行切割成数组
@@ -467,4 +477,23 @@ export function getTableScrollY(tableMaxSize: number, rowLength: number) {
   // 判断 table 容器是否占满
   const isFull = tableMaxSize < contentHeight
   return isFull ? tableMaxSize - TABLE_HEADER_HEIGHT : undefined
+}
+
+/**
+ * 睡眠函数
+ * @param ms 睡眠时间
+ * @returns Promise
+ */
+export function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * 获取cookie值
+ * @param name cookie名称
+ * @returns cookie值
+ */
+export function getCookie(name: string) {
+  const arr = document.cookie.match(new RegExp(`(^| )${name}=([^;]*)(;|$)`))
+  return arr != null ? unescape(arr[2]) : ''
 }

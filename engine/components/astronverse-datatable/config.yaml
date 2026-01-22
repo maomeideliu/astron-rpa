@@ -18,16 +18,22 @@ atomic:
         tip: 指定要读取的列号（例如A，B，C，AB...）
       - key: start_row
         title: 开始行号
-        tip: 指定要读取的起始行号（例如1，2，3...）
+        tip: 指定要读取的开始行号（例如1，2，3...）
       - key: start_col
         title: 开始列号
-        tip: 指定要读取的起始列号（例如A，B，C，AB...）
+        tip: 指定要读取的开始列号（例如A，B，C，AB...）
       - key: end_row
         title: 结束行号
         tip: 结束行号需要大于等于开始行号，0或者不填则读取已编辑区域
       - key: end_col
         title: 结束列号
         tip: 结束列号需要大于等于开始列号，不填则读取已编辑区域
+      - key: is_trim_spaces
+        title: 是否去除空格
+        tip: 读取数据时是否去除字符串前后空格
+      - key: is_replace_none
+        title: 是否替换空值
+        tip: 读取数据时是否将None替换为空字符串
     outputList:
       - key: cell_info
         title: 单元格数据
@@ -58,13 +64,13 @@ atomic:
         tip: 指定要写入的列号（例如A，B，C，AB...）
       - key: data
         title: 写入数据
-        tip: 需要写入的数据内容
+        tip: 需要写入的数据内容，单元格写入字符串，行或列写入数组，区域写入二维数组，格式不符合要求则按字符串处理
       - key: start_row
         title: 开始行号
-        tip: 指定要写入的起始行号（例如1，2，3...）
+        tip: 指定要写入的开始行号（例如1，2，3...）
       - key: start_col
         title: 开始列号
-        tip: 指定要写入的起始列号（例如A，B，C，AB...）
+        tip: 指定要写入的开始列号（例如A，B，C，AB...）
       - key: write_mode
         title: 写入模式
         tip: 选择写入数据的模式（覆盖、插入、追加）
@@ -152,10 +158,10 @@ atomic:
         tip: 指定要复制的列号（例如A，B，C，AB...）
       - key: start_row
         title: 开始行号
-        tip: 指定要复制的起始行号（例如1，2，3...）
+        tip: 指定要复制的开始行号（例如1，2，3...）
       - key: start_col
         title: 开始列号
-        tip: 指定要复制的起始列号（例如A，B，C，AB...）
+        tip: 指定要复制的开始列号（例如A，B，C，AB...）
       - key: end_row
         title: 结束行号
         tip: 结束行号需要大于等于开始行号，0或者不填则读取已编辑区域
@@ -184,9 +190,6 @@ atomic:
       - key: paste_type
         title: 粘贴方式
         tip: 选择粘贴数据的方式（单元格、行、列、区域）
-      - key: paste_value_type
-        title: 粘贴值类型
-        tip: 选择粘贴内容类型（值、公式）
       - key: row
         title: 行号
         tip: 指定要粘贴的行号（例如1，2，3...）
@@ -195,10 +198,10 @@ atomic:
         tip: 指定要粘贴的列号（例如A，B，C，AB...）
       - key: start_row
         title: 开始行号
-        tip: 指定要粘贴的起始行号（例如1，2，3...）
+        tip: 指定要粘贴的开始行号（例如1，2，3...）
       - key: start_col
         title: 开始列号
-        tip: 指定要粘贴的起始列号（例如A，B，C，AB...）
+        tip: 指定要粘贴的开始列号（例如A，B，C，AB...）
     outputList: []
   DataTable.delete_data:
     title: 删除数据表格
@@ -217,10 +220,10 @@ atomic:
         tip: 指定要删除的列号（例如A，B，C，AB...）
       - key: start_row
         title: 开始行号
-        tip: 指定要删除的起始行号（例如1，2，3...）
+        tip: 指定要删除的开始行号（例如1，2，3...）
       - key: start_col
         title: 开始列号
-        tip: 指定要删除的起始列号（例如A，B，C，AB...）
+        tip: 指定要删除的开始列号（例如A，B，C，AB...）
       - key: end_row
         title: 结束行号
         tip: 结束行号需要大于等于开始行号，0或者不填则读取已编辑区域
@@ -255,6 +258,12 @@ atomic:
       - key: amount
         title: 插入数量
         tip: 要插入的行/列数量
+      - key: row_insert_shift
+        title: 行插入方式
+        tip: 插入行时的位置（上方插入、下方插入）
+      - key: column_insert_shift
+        title: 列插入方式
+        tip: 插入列时的位置（左边插入、右边插入）
     outputList: []
   DataTable.insert_formula:
     title: 数据表格插入公式
@@ -270,7 +279,7 @@ atomic:
         tip: 指定要插入公式的列号
       - key: formula
         title: 公式内容
-        tip: 要插入的公式，例如"=SUM(A1:A5)"
+        tip: 要插入的公式，例如"=SUM(A1:A5)"，支持公式包括数学、统计、逻辑、文本、日期和时间、查找和引用、工程、金融和信息公式。取决于打开表格文件的软件对公式的支持情况。
     outputList: []
   DataTable.set_column_title:
     title: 数据表格设置列信息
@@ -387,7 +396,7 @@ atomic:
         tip: 要导入数据的文件路径
       - key: sheet_name
         title: 工作表名称
-        tip: 要导入的工作表名称
+        tip: 要导入的工作表名称，不填则为默认为活动工作表
     outputList: []
   DataTable.export_data_table_to_file:
     title: 导出数据表格到文件
@@ -404,6 +413,9 @@ atomic:
       - key: export_file_type
         title: 导出文件类型
         tip: 选择导出的文件类型
+      - key: is_overwrite
+        title: 是否覆盖同名文件
+        tip: 如果存在同名文件，是否覆盖该文件，否则自动重命名
     outputList:
       - key: export_file_path
         title: 导出文件路径
@@ -445,16 +457,13 @@ options:
       label: 行追加
     - value: column
       label: 列追加
-  PasteValueType:
-    - value: value
-      label: 值
-    - value: formula
-      label: 公式
   DeleteCellMove:
     - value: left
       label: 单元格左移
     - value: up
       label: 单元格上移
+    - value: no
+      label: 单元格不移动
   Bool:
     - value: true
       label: 是

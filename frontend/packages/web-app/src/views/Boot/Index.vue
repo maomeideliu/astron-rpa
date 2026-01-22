@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Auth } from '@rpa/components/auth'
 import { theme } from 'ant-design-vue'
+import { storeToRefs } from 'pinia'
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 
 import { base64ToString } from '@/utils/common'
@@ -13,14 +14,15 @@ import LaunchCarousel from '@/components/Boot/LaunchCarousel.vue'
 import ConfigProvider from '@/components/ConfigProvider/index.vue'
 import Loading from '@/components/Loading.vue'
 import { utilsManager, windowManager } from '@/platform'
-
-import { useUserStore } from '@/stores/useUserStore'
+import { useAppConfigStore } from '@/stores/useAppConfig'
 
 const { token } = theme.useToken()
-const userStore = useUserStore()
+const appStore = useAppConfigStore()
+const { appInfo } = storeToRefs(appStore)
 const progress = ref(0)
 const isLogin = ref(false)
 const loginFormRef = ref()
+const autoLogin = ref(true)
 
 function loginWindowStep() {
   windowManager.restoreLoginWindow()
@@ -59,6 +61,7 @@ function loginAuto() {
     const searchParams = new URLSearchParams(window.location.search)
     const code = searchParams.get('code')
     const tenantType = searchParams.get('tenantType')
+    autoLogin.value = !code
     if (code === '900005') {
       expiredModal(tenantType)
       nextTick(() => {
@@ -72,7 +75,7 @@ function loginAuto() {
 
 function loginSuccess(userInfo: any) {
   console.log('登录成功: ', userInfo)
-  location.replace(`/`)
+  location.replace(`/index.html`)
 }
 
 onMounted(() => {
@@ -113,7 +116,7 @@ onUnmounted(() => {
           </LaunchCarousel>
         </div>
       </template>
-      <Auth.LoginForm v-if="isLogin" ref="loginFormRef" :base-url="getBaseURL()" :auth-type="userStore.authType" :edition="userStore.edition" @finish="loginSuccess" />
+      <Auth.LoginForm v-if="isLogin" ref="loginFormRef" :base-url="getBaseURL()" :auto-login="autoLogin" :auth-type="appInfo.appAuthType" :edition="appInfo.appEdition" @finish="loginSuccess" />
     </Auth.PageLayout>
     <Loading />
   </ConfigProvider>

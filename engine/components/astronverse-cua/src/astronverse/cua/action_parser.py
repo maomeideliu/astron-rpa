@@ -1,13 +1,7 @@
-# Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
-# SPDX-License-Identifier: Apache-2.0
-"""
-动作解析模块
-用于解析视觉大模型输出的动作指令，并转换为可执行的pyautogui代码
-"""
-
 import re
 import ast
 import math
+from astronverse.baseline.logger.logger import logger
 
 IMAGE_FACTOR = 28
 MIN_PIXELS = 100 * 28 * 28
@@ -74,7 +68,7 @@ def parse_action(action_str):
         return {"function": func_name, "args": kwargs}
 
     except Exception as e:
-        print(f"Failed to parse action '{action_str}': {e}")
+        logger.info(f"Failed to parse action '{action_str}': {e}")
         return None
 
 
@@ -259,7 +253,7 @@ def parse_action_to_structure_output(
     actions = []
     for action_instance, raw_str in zip(parsed_actions, all_action):
         if action_instance == None:
-            print(f"Action can't parse: {raw_str}")
+            logger.info(f"Action can't parse: {raw_str}")
             raise ValueError(f"Action can't parse: {raw_str}")
         action_type = action_instance["function"]
         params = action_instance["args"]

@@ -1,25 +1,33 @@
-import { useAsyncState } from '@vueuse/core'
-import { useTranslation } from 'i18next-vue'
+import { useAsyncState, watchOnce, useLocalStorage } from '@vueuse/core'
 import { defineStore } from 'pinia'
-import { computed, h, reactive } from 'vue'
+import { computed, reactive } from 'vue'
+import { parse } from 'yaml'
+import type { UpdateInfo } from '@rpa/shared/platform'
+import { NiceModal } from '@rpa/components'
 
 import { checkBrowerPlugin, getSupportBrowser } from '@/api/plugin'
-import GlobalModal from '@/components/GlobalModal/index.ts'
 import type { PLUGIN_ITEM } from '@/constants/plugin'
 import { BROWER_PLUGIN_LIST } from '@/constants/plugin'
 import { updaterManager, utilsManager } from '@/platform'
+import { UpdaterModal } from '@/components/Updater'
+import { CLOSE_UPDATE_MODAL_VERSION } from '@/constants'
+
+const ENV = import.meta.env
+
+interface UpdaterState extends UpdateInfo {
+  checkLoading: boolean, // 检查更新loading
+}
 
 // app config 信息
 export const useAppConfigStore = defineStore('appConfig', () => {
-  let updateModal: ReturnType<typeof GlobalModal.confirm> = null
+  // 关闭更新提示弹窗的版本号
+  const closeUpdateModalVersion = useLocalStorage<string[]>(CLOSE_UPDATE_MODAL_VERSION, [])
 
-  const { t } = useTranslation()
-  const updaterState = reactive({
-    shouldUpdate: false, // 是否需要更新
-    manifest: null as any, // 最新版本
+  const updaterState = reactive<UpdaterState>({
+    couldUpdate: false, // 是否需要更新
+    downloaded: false, // 是否下载完成
+    manifest: null, // 最新版本
     checkLoading: false, // 检查更新loading
-    progress: 0, // 下载进度
-    installLoading: false, // 安装更新loading
   })
 
   // 当前版本
@@ -32,6 +40,21 @@ export const useAppConfigStore = defineStore('appConfig', () => {
   const { state: systemInfo } = useAsyncState<string>(utilsManager.getSystemEnv, '')
   // 用户目录
   const { state: userPath } = useAsyncState<string>(utilsManager.getUserPath, '')
+  const { state: resourcePath } = useAsyncState<string>(utilsManager.getResourcePath, '')
+
+  const { state: yamlData, execute } = useAsyncState(
+    async () => {
+      const path = resourcePath.value
+      if (!path)
+        return {}
+      const yamlContent  = await utilsManager.readFile(`conf.yaml`, `${path}`)
+      return parse(yamlContent)
+    },
+    {},
+    { immediate: true, resetOnExecute: false },
+  )
+
+  watchOnce(resourcePath, () => execute())
 
   const updateBrowserPluginStatus = async (plugins: PLUGIN_ITEM[]) => {
     if (plugins.length === 0)
@@ -69,48 +92,66 @@ export const useAppConfigStore = defineStore('appConfig', () => {
   }
 
   const appInfo = computed(() => ({
+    appEdition: ['saas', 'enterprise'].includes(yamlData.value.app_edition) ? yamlData.value.app_edition : (ENV.VITE_EDITION || 'saas'),
+    appAuthType: ['casdoor', 'uap'].includes(yamlData.value.app_auth_type) ? yamlData.value.app_auth_type : (ENV.VITE_AUTH_TYPE || 'casdoor'),
     appVersion: appVersion.value,
     appPath: appPath.value,
     buildInfo: buildInfo.value,
     systemInfo: systemInfo.value,
     userPath: userPath.value,
+    remotePath: yamlData.value.remote_addr,
   }))
 
-  const checkUpdate = async () => {
+  /**
+   * 检查更新
+   * @param manualCheck 是否手动检查更新
+   * @returns 
+   */
+  const checkUpdate = async (manualCheck = false) => {
     if (updaterState.checkLoading)
       return
 
     updaterState.checkLoading = true
-    const { shouldUpdate, manifest = null } = await updaterManager.checkUpdate()
-    updaterState.checkLoading = false
+    const { couldUpdate, downloaded, manifest = null } = await updaterManager.checkUpdate()
 
-    updaterState.shouldUpdate = shouldUpdate
+    updaterState.checkLoading = false
+    updaterState.couldUpdate = couldUpdate
+    updaterState.downloaded = downloaded
     updaterState.manifest = manifest
 
-    installUpdate()
+    manualCheck && showUpdaterModal()
   }
 
-  const installUpdate = async () => {
-    if (updateModal || !updaterState.shouldUpdate)
-      return
+  const quitAndInstall = async () => {
+    updaterManager.quitAndInstall()
+  }
 
-    updateModal = GlobalModal.confirm({
-      title: '有新版本可更新！',
-      content: h('div', [
-        h('div', `${t('app')} ${updaterState.manifest?.version} 可更新（已安装版本 ${appInfo.value.appVersion}）。`),
-        h('div', '立即下载并安装？'),
-      ]),
-      onOk: async () => {
-        updaterState.installLoading = true
-        await updaterManager.installUpdate((percent) => { updaterState.progress = percent })
-      },
-      afterClose: () => {
-        updateModal.destroy()
-        updateModal = null
-      },
-      centered: true,
-      keyboard: false,
+  const showUpdaterModal = () => {
+    const needUpdate = updaterState.couldUpdate && updaterState.downloaded;
+    const latestVersion = needUpdate ? updaterState.manifest?.version : appInfo.value.appVersion
+
+    NiceModal.show(UpdaterModal, {
+      needUpdate,
+      latestVersion: latestVersion || appInfo.value.appVersion,
+      updateNote: updaterState.manifest?.body,
     })
+  }
+
+  const onUpdaterDownloaded = () => {
+    updaterState.downloaded = true
+
+    // 下载完成后，如果新的版本已经被拒绝更新，则不提示
+    if (closeUpdateModalVersion.value.includes(updaterState.manifest?.version)) {
+      console.log('新的版本已经被拒绝更新，不提示')
+      return
+    }
+
+    showUpdaterModal()
+  }
+
+  // 拒绝更新
+  const rejectUpdate = (version: string) => {
+    closeUpdateModalVersion.value.push(version)
   }
 
   return {
@@ -118,7 +159,10 @@ export const useAppConfigStore = defineStore('appConfig', () => {
     appInfo,
     updaterState,
     checkUpdate,
-    installUpdate,
+    quitAndInstall,
+    showUpdaterModal,
+    rejectUpdate,
     refreshBrowserPluginStatus,
+    onUpdaterDownloaded,
   }
 })

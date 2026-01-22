@@ -1,9 +1,10 @@
 import { Button, message } from 'ant-design-vue'
 import { debounce } from 'lodash-es'
+import { storeToRefs } from 'pinia'
 import { reactive, ref } from 'vue'
 
 import { generateInviteLink, getInviteUser, getTransferUser, resetInviteLink } from '@/api/market'
-import { VUE_APP_AUTH } from '@/constants'
+import { useAppConfigStore } from '@/stores/useAppConfig'
 import { MARKET_USER_COMMON } from '@/views/Home/components/TeamMarket/config/market'
 import RoleDropdown from '@/views/Home/components/TeamMarket/MarketManage/RoleDropdown.vue'
 import type { resOption } from '@/views/Home/types'
@@ -15,13 +16,14 @@ export function usePhoneInvite(marketId: string, type: string = 'invite', emit?:
   const allSelectUsers = ref([])
   const defaultUserType = ref(MARKET_USER_COMMON)
 
-  const userListByPhone = debounce((phone) => {
-    if (!phone) {
+  const userListByPhone = debounce((keyword) => {
+    if (!keyword) {
       userList.value = []
       return
     }
 
-    if (Object.is(Number(phone), Number.NaN) || phone.length > 11) {
+    
+    if (type !== 'invite' && (Object.is(Number(keyword), Number.NaN) || keyword.length > 11)) {
       message.destroy()
       message.error('请输入正确的手机号')
       userList.value = []
@@ -29,7 +31,8 @@ export function usePhoneInvite(marketId: string, type: string = 'invite', emit?:
     }
 
     const func = type === 'invite' ? getInviteUser : getTransferUser
-    func({ phone, marketId }).then((res: resOption) => {
+    const params = type === 'invite' ? { keyword, marketId } : { phone: keyword, marketId }
+    func(params).then((res: resOption) => {
       const { data } = res
       if (Array.isArray(data)) {
         userList.value = data.map((item) => {
@@ -38,6 +41,8 @@ export function usePhoneInvite(marketId: string, type: string = 'invite', emit?:
           return item
         })
       }
+    }).catch(()=> {
+      userList.value = []
     })
   }, 200)
 
@@ -107,7 +112,6 @@ export function usePhoneInvite(marketId: string, type: string = 'invite', emit?:
 
   const removeUser = (record) => {
     allSelectUsers.value = allSelectUsers.value.filter(i => i.creatorId !== record.creatorId)
-    selectIds.value = allSelectUsers.value.map(i => i.creatorId)
     triggerChange()
   }
 
@@ -173,6 +177,8 @@ export function usePhoneInvite(marketId: string, type: string = 'invite', emit?:
 }
 
 export function useLinkInvite(marketId: string, emit?: any) {
+  const appStore = useAppConfigStore()
+  const { appInfo } = storeToRefs(appStore)
   const invitData = ref({
     inviteKey: '',
     expireTime: '',
@@ -193,7 +199,7 @@ export function useLinkInvite(marketId: string, emit?: any) {
 
   const retInviteLink = (data) => {
     invitData.value = data
-    formState.inviteLink = data.overNumLimit === 1 ? '' : `${VUE_APP_AUTH}?inviteKey=${data.inviteKey}`
+    formState.inviteLink = data.overNumLimit === 1 ? '' : `${appInfo.value.remotePath}login/#/invite?inviteKey=${data.inviteKey}`
     formState.expireType = data.expireType || '24H'
     emit && emit('linkChange', formState.inviteLink)
   }

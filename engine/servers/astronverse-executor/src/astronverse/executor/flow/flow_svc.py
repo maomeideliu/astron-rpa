@@ -29,12 +29,14 @@ class FlowSvc:
         requirement: dict,
         gateway_port: int,
         global_var: dict,
+        project_icon: str = "",
     ):
         if project_id not in self.ast_globals_dict:
             self.ast_globals_dict[project_id] = AstGlobals()
 
         self.ast_globals_dict[project_id].project_info.project_id = project_id
         self.ast_globals_dict[project_id].project_info.project_name = project_name
+        self.ast_globals_dict[project_id].project_info.project_icon = project_icon
         self.ast_globals_dict[project_id].project_info.mode = mode
         self.ast_globals_dict[project_id].project_info.version = version
         self.ast_globals_dict[project_id].project_info.requirement = requirement
@@ -60,7 +62,7 @@ class FlowSvc:
         self.ast_globals_dict[project_id].component_info[component_id].component_file_name = component_file_name
 
     def add_process_info(
-        self, project_id: str, process_id: str, process_category: str, process_name, process_file_name
+        self, project_id: str, process_id: str, process_category: str, process_name, process_file_name, process_params
     ):
         if project_id not in self.ast_globals_dict:
             self.ast_globals_dict[project_id] = AstGlobals()
@@ -70,6 +72,7 @@ class FlowSvc:
         self.ast_globals_dict[project_id].process_info[process_id].process_category = process_category
         self.ast_globals_dict[project_id].process_info[process_id].process_name = process_name
         self.ast_globals_dict[project_id].process_info[process_id].process_file_name = process_file_name
+        self.ast_globals_dict[project_id].process_info[process_id].process_params = process_params
 
     def add_import_python(self, project_id: str, process_id: str, import_python: str):
         if project_id not in self.ast_globals_dict:

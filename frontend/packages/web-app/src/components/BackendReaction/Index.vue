@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { message } from 'ant-design-vue'
 /**
  *  全局主进程事件监听
  *  1、监听主进程事件，处理渲染进程需要执行的逻辑
  *  2、注意此文件中的代码以及导入的依赖尽量要干净，避免引入不必要的内容
  *  3、尽量使用BUS进行触发，减少导入
  */
+import { message } from 'ant-design-vue'
+import { isEmpty } from 'lodash-es'
 import { h } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { base64ToString } from '@/utils/common'
+import { baseUrl } from '@/utils/env'
 import BUS from '@/utils/eventBus'
 import $loading from '@/utils/globalLoading'
 
@@ -19,11 +21,12 @@ import { taskCancel, taskNotify } from '@/api/task'
 import GlobalModal from '@/components/GlobalModal/index.ts'
 import { WINDOW_NAME } from '@/constants'
 import { EDITORPAGE, SMARTCOMPONENT } from '@/constants/menu'
-import { utilsManager, windowManager } from '@/platform'
+import { utilsManager, windowManager, type CreateWindowOptions, type WindowPosition } from '@/platform'
 import { useAppModeStore } from '@/stores/useAppModeStore'
 import { usePermissionStore } from '@/stores/usePermissionStore'
 import { useRunningStore } from '@/stores/useRunningStore'
 import useUserSettingStore from '@/stores/useUserSetting.ts'
+import { useAppConfigStore } from '@/stores/useAppConfig'
 
 export interface W2WType {
   from: string // 来源窗口
@@ -31,12 +34,32 @@ export interface W2WType {
   type: string // 类型
   data?: any // 数据
 }
+
 const permissionStore = usePermissionStore()
+const userSettingStore = useUserSettingStore()
+const runningStore = useRunningStore()
+const appConfigStore = useAppConfigStore()
+const appModeStore = useAppModeStore()
+
+interface SchedulerEventType<T = any> {
+  type: string
+  msg: T
+}
+
+type SubWindowSchedulerEventType = SchedulerEventType<{
+  action: 'open' | 'close'
+  name: string
+  params?: Record<string, string>
+  height: string
+  pos: string
+  top: string
+  width: string
+}>
 
 const route = useRoute()
+
 // 主进程与渲染进程通信
 utilsManager.listenEvent('scheduler-event', (eventMsg) => {
-  console.log('message: ', eventMsg)
   const msgString = base64ToString(eventMsg)
   const msgObject = JSON.parse(msgString)
   const { type, msg } = msgObject
@@ -58,9 +81,10 @@ utilsManager.listenEvent('scheduler-event', (eventMsg) => {
       break
     }
     case 'executor_end': {
-      if (useAppModeStore().appMode === 'normal') {
+      runningStore.closeCreatedWindows()
+      if (appModeStore.appMode === 'normal') {
         executorHandle()
-        useRunningStore().reset()
+        runningStore.reset()
       }
       break
     }
@@ -69,12 +93,14 @@ utilsManager.listenEvent('scheduler-event', (eventMsg) => {
       break
     }
     case 'edit_show_hide': {
-      if (msg.type === 'hide') {
-        windowManager.minimizeWindow()
-      }
-      else {
-        windowManager.showWindow()
-        windowManager.maximizeWindow(true)
+      if (appModeStore.appMode === 'normal') {
+        if (msg.type === 'hide') {
+          windowManager.minimizeWindow()
+        }
+        else {
+          windowManager.showWindow()
+          windowManager.maximizeWindow(true)
+        }
       }
       break
     }
@@ -85,6 +111,10 @@ utilsManager.listenEvent('scheduler-event', (eventMsg) => {
     case 'terminal_status': {
       // 监听调度模式时，终端状态-运行中、空闲，通知主进程切换托盘菜单
       utilsManager.invoke('tray_change', { mode: 'scheduling', status: msg.type })
+      break
+    }
+    case 'sub_window': {
+      subWindowHandle(msg)
       break
     }
     default:
@@ -115,13 +145,25 @@ utilsManager.listenEvent('w2w', (eventMsg: W2WType) => {
     else if (type === 'save') {
       BUS.$emit('record-save', data)
     }
+  } else if (from === WINDOW_NAME.USERFORM) {
+    if (type === 'userFormSave') {
+      runningStore.sendReplyMessage(data)
+    }
+  } else if (from === WINDOW_NAME.MULTICHAT) {
+    if (type === 'chatContentSave') {
+      runningStore.sendReplyMessage(data)
+    }
   }
 })
 
 utilsManager.listenEvent('exit_scheduling_mode', () => {
   console.log('exit_scheduling_mode')
-  useAppModeStore().setAppMode('normal') // 设置为正常模式
+  appModeStore.setAppMode('normal') // 设置为正常模式
   endSchedulingMode()
+})
+
+utilsManager.listenEvent('update-downloaded', () => {
+  appConfigStore.onUpdaterDownloaded()
 })
 
 // 调度模式，停止当前任务
@@ -173,13 +215,40 @@ function executorHandle() {
   windowManager.maximizeWindow(true)
 }
 
+// 打开/关闭子窗口
+async function subWindowHandle(msg: SubWindowSchedulerEventType['msg']) {
+  if (msg.action === 'open') {
+    // 构建 URL，如果有 params 则添加查询参数
+    const options: CreateWindowOptions = {
+      url: `${baseUrl}/${msg.name}.html?${new URLSearchParams(msg.params).toString()}`,
+      title: 'iflyrpa-window',
+      label: msg.name,
+      alwaysOnTop: msg.top === 'true',
+      position: msg.pos as WindowPosition,
+      width: Number(msg.width),
+      height: Number(msg.height),
+      resizable: false,
+      decorations: false,
+      fileDropEnabled: false,
+      transparent: true,
+      skipTaskbar: true,
+    }
+
+    await windowManager.createWindow(options)
+  }
+  else if (msg.action === 'close') {
+    windowManager.closeWindow(WINDOW_NAME.LOGWIN)
+  }
+}
+
 function logReportHandle(msg) {
-  const { log_path } = msg
+  const { log_path, data_table_path } = msg
   // 设置中心的详细日志是否启用，如果启用，则打开日志弹窗
-  if (useUserSettingStore().userSetting.commonSetting.hideDetailLogWindow)
+  if (!userSettingStore.openLogModalAfterRun)
     return
+
   if (![EDITORPAGE, SMARTCOMPONENT].includes(route.name as string) && log_path) {
-    BUS.$emit('open-log-modal', log_path)
+    BUS.$emit('open-log-modal', log_path, data_table_path)
   }
 }
 

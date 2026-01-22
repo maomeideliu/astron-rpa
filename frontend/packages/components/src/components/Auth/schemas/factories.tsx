@@ -29,7 +29,7 @@ export interface FieldSchema {
   rules?: any[]
   props?: Record<string, any>
   sendCaptcha?: (phone: string) => Promise<void>
-  visible?: (model: any) => boolean
+  hidden?: (model: any) => boolean
   disabled?: (model: any) => boolean
   customRender?: (ctx?: {
     field?: FieldSchema
@@ -232,7 +232,7 @@ export const fieldFactories = {
     placeholder: '请输入您的企业名称',
     rules: [
       required('请输入您的企业名称'),
-      { min: 2, max: 50, message: '企业名称为2-50个字符', trigger: 'change' },
+      { min: 1, max: 50, message: '企业名称不能超过50个字符', trigger: 'change' },
     ],
   }),
 
@@ -270,7 +270,7 @@ export const fieldFactories = {
           <Checkbox v-model:checked={formData.remember} class="text-[#000000D9] dark:text-[#FFFFFFD9]">
             记住账号密码
           </Checkbox>
-          <Button type="link" class="m-0 p-0 h-auto" onClick={() => handleEvents && handleEvents('forgetPassword')}>
+          <Button type="link" class="m-0 p-0 h-auto" onClick={() => handleEvents && handleEvents('forgotPassword')}>
             忘记密码
           </Button>
         </div>

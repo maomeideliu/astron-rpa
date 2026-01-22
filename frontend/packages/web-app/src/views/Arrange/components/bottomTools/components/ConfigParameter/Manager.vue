@@ -2,7 +2,7 @@
 import { useTheme } from '@rpa/components'
 import { computedWithControl } from '@vueuse/core'
 import { Button, Input, message, Select } from 'ant-design-vue'
-import { debounce, isArray, isEmpty } from 'lodash-es'
+import { debounce } from 'lodash-es'
 import { computed } from 'vue'
 import type { VxeGridProps } from 'vxe-table'
 
@@ -10,17 +10,17 @@ import VxeGrid from '@/plugins/VxeTable'
 
 import ElementUseFlowList from '@/components/ElementUseFlowList/Index.vue'
 import GlobalModal from '@/components/GlobalModal/index.ts'
-import { OTHER_IN_TYPE, PARAMETER_VAR_IN_TYPE } from '@/constants/atom'
+import { PARAMETER_VAR_IN_TYPE } from '@/constants/atom'
 import { useFlowStore } from '@/stores/useFlowStore'
-import { useProcessStore } from '@/stores/useProcessStore.ts'
-import AtomConfig from '@/views/Arrange/components/atomForm/AtomConfig.vue'
+import { useProcessStore, isPyModel } from '@/stores/useProcessStore.ts'
 
 import { getChildProcessParameterOption, getMainProcessParameterOption, usageOptions } from './constant.ts'
 import { useConfigParameter } from './useConfigParameter.ts'
+import VarValueEditor from './VarValueEditor.vue'
+import VarInput from './VarInput.vue'
 
 interface LocalConfigParamData extends RPA.ConfigParamData {
   perVarName: string
-  formItem?: RPA.AtomDisplayItem
 }
 
 const props = defineProps<{ height?: number }>()
@@ -48,62 +48,22 @@ const gridOptions: VxeGridProps<RPA.ConfigParamData> = {
   ],
 }
 
-// 由 String 转换成 Array
-function convertVarValueToArray(varValue: unknown): RPA.AtomFormItemResult[] {
-  if (isArray(varValue) && !isEmpty(varValue)) {
-    return varValue
-  }
+const searchedData = computedWithControl(
+  () => [processStore.parameters.length, processStore.activeProcessId, searchText.value], 
+  () => {
+    let list = processStore.parameters
 
-  if (typeof varValue === 'string') {
-    try {
-      const parsed = JSON.parse(varValue)
-      return isArray(parsed) ? parsed : [{ type: OTHER_IN_TYPE, value: varValue }]
+    // 根据参数名称查询
+    if (searchText.value) {
+      list = processStore.parameters.filter(item => item.varName.includes(searchText.value))
     }
-    catch {
-      return [{ type: OTHER_IN_TYPE, value: varValue }]
-    }
+
+    return list.map(item => ({
+      ...item,
+      perVarName: item.varName,
+    }))
   }
-
-  return [{ type: OTHER_IN_TYPE, value: '' }]
-}
-
-// 由 Array 转换成 String
-function convertArrayToVarValue(value: RPA.AtomFormItemResult[]): string {
-  if (!isArray(value) || value.length === 0) {
-    return ''
-  }
-  return JSON.stringify(value)
-}
-
-// 创建 formItem
-function createFormItem(item: RPA.ConfigParamData): RPA.AtomDisplayItem {
-  const varValueArray = convertVarValueToArray(item.varValue)
-  return {
-    types: item.varType || 'Any',
-    name: item.id,
-    key: item.id,
-    title: item.varName,
-    value: varValueArray,
-    formType: {
-      type: 'INPUT_PYTHON',
-    },
-  } as RPA.AtomDisplayItem
-}
-
-const searchedData = computedWithControl(() => processStore.parameters.length, () => {
-  let list = processStore.parameters
-
-  // 根据参数名称查询
-  if (searchText.value) {
-    list = processStore.parameters.filter(item => item.varName.includes(searchText.value))
-  }
-
-  return list.map(item => ({
-    ...item,
-    perVarName: item.varName,
-    formItem: createFormItem(item),
-  }))
-})
+)
 
 const emptyText = computed(() => searchText.value ? '未搜索到配置参数' : undefined)
 
@@ -115,6 +75,9 @@ const varTypeOptions = computed(() => {
 
   return getChildProcessParameterOption()
 })
+
+// 是否是 python 模块
+const isPyProcessModule = computed(() => isPyModel(processStore.activeProcess.resourceCategory))
 
 // 删除事件
 function deleteEvent(row: RPA.ConfigParamData) {
@@ -159,26 +122,7 @@ async function handleBlur(row: LocalConfigParamData) {
   row.perVarName = row.varName
 }
 
-// 同步 formItem.value 到 varValue
-function syncVarValueFromFormItem(row: LocalConfigParamData) {
-  if (isArray(row.formItem?.value)) {
-    row.varValue = convertArrayToVarValue(row.formItem.value)
-  }
-}
-
-const handleChange = debounce((row: RPA.ConfigParamData) => processStore.updateParameter(row), 300, { leading: true })
-
-function handleFormItemBlur(event: FocusEvent, row: LocalConfigParamData) {
-  // 检查焦点是否还在容器内（relatedTarget 是获得焦点的元素）
-  const currentTarget = event.currentTarget as HTMLElement
-  const relatedTarget = event.relatedTarget as HTMLElement | null
-
-  // 焦点移到了容器外则触发保存
-  if (!currentTarget.contains(relatedTarget)) {
-    syncVarValueFromFormItem(row)
-    processStore.updateParameter(row)
-  }
-}
+const handleChange = debounce((row: RPA.ConfigParamData) => processStore.updateParameter(row), 500, { leading: true })
 </script>
 
 <template>
@@ -193,7 +137,7 @@ function handleFormItemBlur(event: FocusEvent, row: LocalConfigParamData) {
     :empty-text="emptyText"
   >
     <template #name_default="{ row }">
-      <Input v-model:value="row.varName" :bordered="false" class="text-xs text-inherit" @blur="handleBlur(row)" />
+      <VarInput v-model:value="row.varName" class="text-xs" @blur="handleBlur(row)" />
     </template>
     <template #usage_default="{ row }">
       <Select v-model:value="row.varDirection" :options="usageOptions" class="w-full" size="small" :bordered="false" @change="handleChange(row)" />
@@ -202,15 +146,18 @@ function handleFormItemBlur(event: FocusEvent, row: LocalConfigParamData) {
       <Select v-model:value="row.varType" :options="varTypeOptions" class="w-full" size="small" :bordered="false" @change="handleChange(row)" />
     </template>
     <template #default_default="{ row }">
-      <div v-if="row.formItem" @focusout="(e) => handleFormItemBlur(e, row)">
-        <AtomConfig :form-item="row.formItem" size="small" />
-      </div>
+      <VarValueEditor
+        v-model:var-value="row.varValue"
+        :var-type="row.varType"
+        size="small"
+        @changed="handleChange(row)"
+      />
     </template>
     <template #desc_default="{ row }">
       <Input v-model:value="row.varDescribe" :bordered="false" class="text-xs text-inherit" @blur="handleChange(row)" />
     </template>
     <template #operation_default="{ row }">
-      <Button type="link" size="small" class="!text-xs" @click="findQuoted(row)">
+      <Button v-if="!isPyProcessModule" type="link" size="small" class="!text-xs" @click="findQuoted(row)">
         查找引用
       </Button>
       <Button type="link" size="small" class="!text-xs" @click="deleteEvent(row)">

@@ -2,6 +2,7 @@
 import { Auth } from '@rpa/components/auth'
 import { Dropdown } from 'ant-design-vue'
 import { useTranslation } from 'i18next-vue'
+import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
 import { getTermianlStatus, startSchedulingMode } from '@/api/engine'
@@ -11,6 +12,7 @@ import GlobalModal from '@/components/GlobalModal/index.ts'
 import { DESIGNER } from '@/constants/menu'
 import { useRoutePush } from '@/hooks/useCommonRoute'
 import { utilsManager, windowManager } from '@/platform'
+import { useAppConfigStore } from '@/stores/useAppConfig'
 import { useAppModeStore } from '@/stores/useAppModeStore'
 import { useRunningStore } from '@/stores/useRunningStore'
 import { useUserStore } from '@/stores/useUserStore'
@@ -18,24 +20,29 @@ import { useUserStore } from '@/stores/useUserStore'
 const { t } = useTranslation()
 const runningStore = useRunningStore()
 const userStore = useUserStore()
+const appStore = useAppConfigStore()
+const { appInfo } = storeToRefs(appStore)
 
-const menuData = computed(() => [
-  // {
-  //   key: 'userRight',
-  //   icon: 'rights',
-  //   label: t('userInfo.userRight'),
-  // },
-  // {
-  //   key: 'changeMode',
-  //   icon: 'rights',
-  //   label: t('changeMode'),
-  // },
-  {
-    key: 'logout',
-    icon: 'logout',
-    label: t('logout'),
-  },
-])
+const menuData = computed(() => {
+  return [
+    // {
+    //   key: 'userRight',
+    //   icon: 'rights',
+    //   label: t('userInfo.userRight'),
+    // },
+    {
+      key: 'changeMode',
+      icon: 'rights',
+      label: t('changeMode'),
+      hidden: () => userStore.currentTenant?.tenantType === 'personal',
+    },
+    {
+      key: 'logout',
+      icon: 'logout',
+      label: t('logout'),
+    }
+  ].filter(item => !item.hidden || !item.hidden())
+})
 
 async function menuClick(item: any) {
   const { data: { running } } = await getTermianlStatus()
@@ -46,16 +53,10 @@ async function menuClick(item: any) {
   if (item.key === 'logout') {
     await logout()
   }
-  if (item.keyPath[0] === 'changeTenant') {
-    // 回传租户Id后重新跳转到首页
-    await sendTenantId({ tenantId: item.key })
-    taskNotify({ event: 'switch' })
-    useRoutePush({ name: DESIGNER })
-  }
   if (item.keyPath[0] === 'changeMode') {
     GlobalModal.confirm({
       title: '开始调度模式',
-      content: '开启后本机画面和应用执行情况会被卓越中心监控，同时接受卓越中心下发的任务',
+      content: '开启后本机画面和应用执行情况会被控制台监控，同时接受控制台下发的任务',
       okText: '确定',
       cancelText: '取消',
       onOk: () => {
@@ -70,8 +71,8 @@ async function menuClick(item: any) {
 }
 
 async function logout() {
-  taskNotify({ event: 'exit' }) // 不阻塞
   await userStore.logout()
+  taskNotify({ event: 'exit' }) // 不阻塞
   location.replace(`/boot.html`)
 }
 
@@ -103,12 +104,12 @@ function modalTip() {
           </div>
           <div class="flex flex-col">
             <span class="font-semibold">{{ t('userInfo.userName') }}</span>
-            <span class="text-[rgba(0,0,0,0.65)] dark:text-[rgba(255,255,255,0.65)]">{{ userStore.currentUserInfo?.loginName }}</span>
+            <span class="text-[rgba(0,0,0,0.65)] dark:text-[rgba(255,255,255,0.65)]">{{ userStore.currentUserInfo?.name || userStore.currentUserInfo?.loginName }}</span>
           </div>
         </div>
         <Auth.Consult
           v-if="userStore.currentTenant?.tenantType !== 'enterprise'"
-          :authType="userStore.authType"
+          :auth-type="appInfo.appAuthType"
           trigger="button"
           :button-conf="{ buttonType: 'tag', currentEdition: userStore.currentTenant?.tenantType, expirationDate: userStore.currentTenant?.expirationDate, shouldAlert: userStore.currentTenant?.shouldAlert }"
           custom-class="upgrade-btn"
@@ -133,8 +134,5 @@ function modalTip() {
 <style lang="scss" scoped>
 :deep(.ant-dropdown-menu) {
   background: red;
-}
-:deep(.upgrade-btn .tenant-upgrade-tag) {
-  height: 40px !important;
 }
 </style>

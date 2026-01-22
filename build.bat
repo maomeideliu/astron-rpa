@@ -116,7 +116,6 @@ if not exist "%SEVENZ_EXE%" (
     exit /b 1
 )
 
-
 uv --version >nul 2>&1
 if errorlevel 1 (
     echo uv not found, please install uv first, https://docs.astral.sh/uv/, and ensure uv command is in environment variables
@@ -292,6 +291,23 @@ if errorlevel 1 (
 )
 echo Python_core directory compressed successfully, file saved to: %SCRIPT_DIR%\%ARCHIVE_DIST_DIR%\python_core.7z
 
+REM ---- 生成 SHA-256 校验文件（与 7z 同级） ----
+set "HASH_FILE=%SCRIPT_DIR%\%ARCHIVE_DIST_DIR%\python_core.7z.sha256.txt"
+
+for /f "skip=1 delims=" %%H in (
+    'certutil -hashfile "%SCRIPT_DIR%\%ARCHIVE_DIST_DIR%\python_core.7z" SHA256'
+) do (
+    echo %%H> "%HASH_FILE%"
+    goto :hashDone
+)
+:hashDone
+
+if errorlevel 1 (
+    echo SHA-256 generation failed
+    exit /b 1
+)
+echo Hash file generated: %HASH_FILE%
+
 echo.
 echo ============================================
 echo Engine Build Complete!
@@ -349,28 +365,8 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
-echo Configuring environment variables...
-if not exist "packages\web-app\.env" (
-    if exist "packages\web-app\.env.example" (
-        copy packages\web-app\.env.example packages\web-app\.env
-        echo Environment file created from .env.example
-    ) else (
-        echo Warning: .env.example not found, skipping environment configuration
-    )
-) else (
-    echo Environment file already exists, skipping copy
-)
-
-echo Building web application...
-call pnpm build:web
-if !errorlevel! neq 0 (
-    echo Web application build failed
-    cd /d "%SCRIPT_DIR%"
-    exit /b 1
-)
-
 echo Building desktop application...
-call pnpm build:tauri-debug
+call pnpm build:desktop
 if !errorlevel! neq 0 (
     echo Desktop application build failed
     cd /d "%SCRIPT_DIR%"
@@ -388,3 +384,6 @@ echo.
 echo ============================================
 echo Full Build Complete!
 echo ============================================
+echo.
+echo Installation package location:
+echo   Frontend installer: frontend\packages\electron-app\dist\

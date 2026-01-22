@@ -1,8 +1,8 @@
 import importlib
 import importlib.util
 import inspect
-
 from typing import Any
+
 from astronverse.actionlib.atomic import atomicMg
 from astronverse.browser.browser import Browser
 from astronverse.browser.browser_element import get_browser_instance
@@ -72,15 +72,15 @@ class Smart:
     @staticmethod
     @atomicMg.atomic(
         "Smart",
-        inputList=[
-            atomicMg.param("smart_info"),
-            atomicMg.param("code_params", required=False),
-        ],
+        inputList=[atomicMg.param("smart_component")],
+        outputList=[atomicMg.param("smart_result", types="Any")],
     )
     def run_code(smart_component: dict, **code_params) -> Any:
         """
         执行 AI 生成的代码，支持网页自动化和数据处理两种类型。
         """
+        code_params = {k: v for k, v in code_params.items() if v is not None and not k.startswith("__")}
+
         file_name = smart_component.get("file_path", "")
         smart_type = smart_component.get("smart_type", "")
 

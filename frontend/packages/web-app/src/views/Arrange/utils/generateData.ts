@@ -13,6 +13,7 @@ import { Group, GroupEnd, LOOP_END_MAP } from '@/views/Arrange/config/atomKeyMap
 import { pickProcessAndModuleOptions } from '@/views/Arrange/utils'
 
 import { generateName, genNonDuplicateID } from './index'
+import { isComponentKey } from '@/utils/customComponent'
 
 export const exceptionKeys = [
   '__skip_err__',
@@ -45,9 +46,9 @@ export async function loopAtomByKey(key: string) {
 }
 
 // 生成组件节点
-export async function createComponentAbility(key: string, version?: string | number) {
+export async function createComponentAbility(key: string, version?: string | number, context?: 'add' | 'get' | 'update') {
   if (!getAtomByKey(key, version)) {
-    const node = await ProjectDocument.gainComponentAbility(key, version)
+    const node = await ProjectDocument.gainComponentAbility(key, version, context)
     return node
   }
 }
@@ -235,7 +236,7 @@ export function generateInputMap(key: string, specialRender = false) {
     ...atom,
     alias: key === Group ? generateGroupName() : atom.title,
     id: generateId(key),
-    inputList: isSmartComponentKey(atom.key) ? atom.inputList : generateInItems(atom),
+    inputList: isComponentKey(atom.key) || isSmartComponentKey(atom.key)? atom.inputList : generateInItems(atom),
     outputList: generateOutItems(atom.outputList),
     advanced: generateAdvancedItems(atom),
     exception: generateExceptionItems(atom),

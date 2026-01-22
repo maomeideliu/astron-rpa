@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { NiceModal } from '@rpa/components'
 import { inject } from 'vue'
+import { isEmpty } from 'lodash-es'
 
 import { transDataForPreview } from '../utils/index'
 
@@ -18,15 +19,11 @@ function togglePreView() {
 }
 
 function handleOk() {
+  const formList = dialogData.value?.formList
   // 只要有一个表单控件存在一个必填项，则required字段为true，后端需要
-  const required = dialogData.value?.formList.some((item: any) => item?.required?.value)
+  const required = formList.some((item: any) => item?.required?.value)
   dialogData.value.table_required = required
-  const saveData = dialogData.value?.formList.length
-    ? JSON.stringify({
-        value: dialogData.value,
-        rpa: 'special',
-      })
-    : ''
+  const saveData = isEmpty(formList) ? '' : JSON.stringify(dialogData.value);
   emit('saveData', saveData)
 }
 </script>
@@ -36,7 +33,7 @@ function handleOk() {
     <a-button type="primary" ghost @click="togglePreView">
       预览
     </a-button>
-    <a-button @click="() => { emit('close') }">
+    <a-button @click="() => emit('close')">
       取消
     </a-button>
     <a-button type="primary" @click="handleOk">
