@@ -1,6 +1,11 @@
 package com.iflytek.rpa.auth.idp.enterpriseIdentity;
 
 import com.iflytek.rpa.auth.core.entity.*;
+import com.iflytek.rpa.auth.core.entity.ChangePasswordDto;
+import com.iflytek.rpa.auth.core.entity.LoginDto;
+import com.iflytek.rpa.auth.core.entity.RegisterDto;
+import com.iflytek.rpa.auth.core.entity.Tenant;
+import com.iflytek.rpa.auth.core.entity.User;
 import com.iflytek.rpa.auth.idp.AuthenticationService;
 import com.iflytek.rpa.auth.utils.AppResponse;
 import com.iflytek.rpa.auth.utils.ErrorCodeEnum;

@@ -12,20 +12,14 @@ from astronverse.executor.config import Config
 from astronverse.executor.debug.apis.ws import Ws
 from astronverse.executor.debug.debug import Debug
 from astronverse.executor.debug.debug_svc import DebugSvc
-from astronverse.executor.error import (
-    MSG_EXECUTION_ERROR,
-    MSG_FLOW_INIT_START,
-    MSG_FLOW_INIT_SUCCESS,
-    MSG_TASK_EXECUTION_START,
-    BaseException,
-)
+from astronverse.executor.error import *
 from astronverse.executor.flow.flow import Flow
 from astronverse.executor.flow.flow_svc import FlowSvc
 from astronverse.executor.logger import logger
+from astronverse.executor.utils.utils import str_to_list_if_possible
 
 
-def flow_start(args, conf):
-    svc = FlowSvc(conf=conf)
+def flow_start(svc, args):
     flow = Flow(svc=svc)
     flow.gen_component(
         path=svc.conf.gen_component_path, project_id=args.project_id, mode=args.mode, version=args.version
@@ -41,7 +35,7 @@ def flow_start(args, conf):
     )
 
 
-def debug_start(args, svc):
+def debug_start(args, svc, flow_tip=None):
     # Ws服务
     ws = Ws(svc=svc)
     if Config.open_log_ws:
@@ -73,6 +67,11 @@ def debug_start(args, svc):
     svc.report.info(
         ReportFlow(log_type=ReportType.Flow, status=ReportFlowStatus.INIT_SUCCESS, msg_str=MSG_FLOW_INIT_SUCCESS)
     )
+
+    # 生成错误消息
+    if flow_tip:
+        for tip in flow_tip:
+            svc.report.info(tip)
 
     # 执行前验证
     if Config.open_log_ws:
@@ -175,21 +174,38 @@ def start():
     else:
         args.recording_config = {}
 
-    svc = None
+    debug_svc = None
     try:
         # 生成代码
-        flow_start(conf=Config, args=args)
+        flow_svc = FlowSvc(conf=Config)
+        flow_start(svc=flow_svc, args=args)
+        flow_tip = flow_svc.flow_tip  # 生成python脚本的提示信息
+        temp_run_param = {}
+        if args.run_param and isinstance(args.run_param, list):
+            for p in args.run_param:
+                param = flow_svc.param.parse_param(
+                    {
+                        "value": str_to_list_if_possible(p.get("varValue")),
+                        "types": p.get("varType"),
+                        "name": p.get("varName"),
+                    }
+                )
+                temp_run_param[p.get("varName")] = eval(
+                    param.show_value(), {}, {}
+                )  # 外部参数，只有简单的逻辑处理，不会引用变量
+        args.run_param = temp_run_param  # 生成python脚本的外部参数
+
         # 执行代码
-        svc = DebugSvc(conf=Config, debug_model=args.debug == "y")
-        debug_start(svc=svc, args=args)
+        debug_svc = DebugSvc(conf=Config, debug_model=args.debug == "y")
+        debug_start(svc=debug_svc, args=args, flow_tip=flow_tip)
     except BaseException as e:
-        if svc:
-            svc.end(ExecuteStatus.FAIL, reason=e.message)
+        if debug_svc:
+            debug_svc.end(ExecuteStatus.FAIL, reason=e.message)
         logger.debug("error {} traceback {}".format(e, traceback.format_exc()))
         return
     except Exception as e:
-        if svc:
-            svc.end(ExecuteStatus.FAIL, reason=MSG_EXECUTION_ERROR)
+        if debug_svc:
+            debug_svc.end(ExecuteStatus.FAIL, reason=MSG_EXECUTION_ERROR)
         logger.debug("error {} traceback {}".format(e, traceback.format_exc()))
         return
     logger.debug("end")
