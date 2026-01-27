@@ -1,13 +1,12 @@
 package com.iflytek.rpa.auth.sp.uap.utils;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.Cipher;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import javax.crypto.Cipher;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * 授权解密工具类
@@ -34,7 +33,7 @@ public class EncryptUtils {
      * RSA公钥对象
      */
     private static PublicKey publicKey;
-    
+
     /**
      * 初始化RSA公钥
      * 从Base64编码的公钥字符串加载公钥对象
@@ -53,7 +52,7 @@ public class EncryptUtils {
             throw new RuntimeException("RSA公钥初始化失败", e);
         }
     }
-    
+
     /**
      * 使用公钥解密授权信息
      * 注意：这里使用公钥解密，是因为供应商使用私钥加密
@@ -92,4 +91,3 @@ public class EncryptUtils {
         }
     }
 }
-

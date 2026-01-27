@@ -11,11 +11,8 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "rpa.auth.deployment-mode", havingValue = "saas", matchIfMissing = true)
 public class IflytekAccountClientFactory {
 
-    public CAccountClient create(String kongUrl,
-                                 int timeOut,
-                                 String accessKeyId,
-                                 String accessKeySecret,
-                                 boolean useAesEncrypt) {
+    public CAccountClient create(
+            String kongUrl, int timeOut, String accessKeyId, String accessKeySecret, boolean useAesEncrypt) {
         return new CAccountClient.Builder()
                 .setKongUrl(kongUrl)
                 .setTimeOut(timeOut)
@@ -25,4 +22,3 @@ public class IflytekAccountClientFactory {
                 .build();
     }
 }
-
