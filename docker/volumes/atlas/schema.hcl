@@ -3211,6 +3211,7 @@ table "file" {
     null    = true
     type    = int
     comment = "逻辑删除标志位"
+    default = 0
   }
   column "file_name" {
     null    = true
