@@ -24,10 +24,30 @@ services:
       - ./volumes/mysql/init_c_atom_meta_data.sql:/docker-entrypoint-initdb.d/03-init_data.sql
       - ./volumes/mysql/init_his_data_enum_data.sql:/docker-entrypoint-initdb.d/04-init_data.sql
       - ./volumes/mysql/init_sample_template_data.sql:/docker-entrypoint-initdb.d/05-init_data.sql
+      - ./volumes/mysql/init_c_atom_meta_new_data.sql:/docker-entrypoint-initdb.d/06-init_data.sql
     command: |
       bash -c "
-        cp /etc/mysql/conf.d/my.cnf /etc/mysql/conf.d/my1.cnf
-        docker-entrypoint.sh mysqld
+      cp /etc/mysql/conf.d/my.cnf /etc/mysql/conf.d/my1.cnf &&
+      
+      (
+        echo 'Wait for MySQL to start...';
+        until mysqladmin ping -h localhost -u root -p'${DATABASE_PASSWORD}' --silent; do
+          sleep 5;
+        done;
+        
+        echo 'MySQL is up! Running incremental scripts...';
+        
+        for f in /docker-entrypoint-initdb.d/*.sql; do
+          if [[ \"\$$f\" != *\"01-schema.sql\" ]]; then
+            echo \"Running \$$f ...\";
+            mysql -u root -p'${DATABASE_PASSWORD}' ${DATABASE_NAME} < \"\$$f\";
+          fi
+        done;
+        
+        echo 'All scripts finished.';
+      ) &
+      
+      docker-entrypoint.sh mysqld
       "
     healthcheck:
       test:
@@ -148,7 +168,7 @@ services:
     container_name: rpa-opensource-openresty-nginx
     restart: always
     ports:
-      - "32742:80"
+      - "30025:80"
     volumes:
       - ./volumes/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./volumes/nginx/lua:/usr/local/openresty/nginx/lua:ro
@@ -178,7 +198,7 @@ services:
       - dataSourceName=${DATABASE_USERNAME}:${DATABASE_PASSWORD}@tcp(${DATABASE_HOST}:${DATABASE_PORT})/
       - CASDOOR_ENABLE_HTTP_WEBHOOK=true
     ports:
-      - "8000:8000"
+      - "30020:8000"
     volumes:
       - ./volumes/casdoor/init_data_dump.json:/init_data.json
     depends_on:
@@ -188,10 +208,10 @@ services:
       - rpa-opensource-network
 
   ai-service:
-    image: ghcr.io/iflytek/astron-rpa/ai-service:latest
-    # build:
-    #   context: ..
-    #   dockerfile: backend/ai-service/Dockerfile
+    # image: ghcr.io/iflytek/astron-rpa/ai-service:latest
+    build:
+      context: ..
+      dockerfile: backend/ai-service/Dockerfile
     container_name: rpa-opensource-ai-service
     restart: always
     env_file: *env_file
@@ -215,10 +235,10 @@ services:
       - rpa-opensource-network
 
   openapi-service:
-    image: ghcr.io/iflytek/astron-rpa/openapi-service:latest
-    # build:
-    #   context: ..
-    #   dockerfile: backend/openapi-service/Dockerfile
+    # image: ghcr.io/iflytek/astron-rpa/openapi-service:latest
+    build:
+      context: ..
+      dockerfile: backend/openapi-service/Dockerfile
     container_name: rpa-opensource-openapi-service
     restart: always
     env_file: *env_file
@@ -242,10 +262,10 @@ services:
       - rpa-opensource-network
 
   resource-service:
-    image: ghcr.io/iflytek/astron-rpa/resource-service:latest
-    # build:
-    #   context: ..
-    #   dockerfile: backend/resource-service/Dockerfile
+    # image: ghcr.io/iflytek/astron-rpa/resource-service:latest
+    build:
+      context: ..
+      dockerfile: backend/resource-service/Dockerfile
     container_name: rpa-opensource-resource-service
     restart: always
     env_file: *env_file
