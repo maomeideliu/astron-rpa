@@ -207,22 +207,34 @@ public class MultiDataSourceConfig {
     }
 
     /**
-     * 市场用户DAO的MapperScan配置
+     * RPA业务数据库DAO的MapperScan配置
      * 指定使用 rpa 数据源（访问rpa-opensource-mysql）
      */
     @Configuration
     @MapperScan(
-            basePackages = "com.iflytek.rpa.auth.sp.casdoor.dao.MarketUserDao",
+            basePackages = {
+                    "com.iflytek.rpa.auth.sp.casdoor.dao.MarketUserDao",
+                    "com.iflytek.rpa.auth.auditRecord.dao",
+                    "com.iflytek.rpa.auth.blacklist.dao",
+                    "com.iflytek.rpa.auth.dataPreheater.dao"
+            },
             sqlSessionFactoryRef = "rpaSqlSessionFactory",
             sqlSessionTemplateRef = "rpaSqlSessionTemplate")
-    static class MarketUserDaoMapperScanConfig {
+    static class RpaBusinessDaoMapperScanConfig {
         // 空配置类，仅用于 @MapperScan 注解
     }
 
     /**
      * 数据源分配说明：
-     * 1. CasdoorUserDao, CasdoorTenantDao, CasdoorRoleDao, CasdoorGroupDao 使用 casdoor 数据源
-     * 2. MarketUserDao 使用 rpa 数据源（访问app_market_user表）
+     * 1. CasdoorUserDao, CasdoorTenantDao, CasdoorRoleDao, CasdoorGroupDao 使用 casdoor 数据源（访问astron-agent-casdoor-mysql）
+     * 2. 以下DAO使用 rpa 数据源（访问rpa-opensource-mysql）：
+     *    - MarketUserDao（访问app_market_user表）
+     *    - AuditRecordDao（访问audit_record表）
+     *    - UserBlacklistDao（访问user_blacklist表）
+     *    - SharedVarKeyTenantDao（访问shared_var_key_tenant表）
+     *    - AppMarketUserDao（访问app_market_user表）
+     *    - AppMarketDao（访问app_market表）
+     *    - AppMarketClassificationDao（访问app_market_classification表）
      * 3. 对于跨数据源的查询（如getMarketUserList需要同时查询两个数据源），请在Service层分别查询后合并结果
      */
 }
