@@ -3,10 +3,12 @@ package com.iflytek.rpa.auth.conf;
 import com.alibaba.druid.pool.DruidDataSource;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+import com.iflytek.rpa.auth.sp.casdoor.dao.MarketUserDao;
 import javax.sql.DataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.annotation.MapperScan;
+import org.mybatis.spring.mapper.MapperFactoryBean;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -127,8 +129,9 @@ public class MultiDataSourceConfig {
     public SqlSessionFactory rpaSqlSessionFactory(@Qualifier("rpaDataSource") DataSource dataSource) throws Exception {
         MybatisSqlSessionFactoryBean sessionFactory = new MybatisSqlSessionFactoryBean();
         sessionFactory.setDataSource(dataSource);
+        // Mapper XML文件在Java源码目录下，编译后在classpath的对应包路径下
         sessionFactory.setMapperLocations(
-                new PathMatchingResourcePatternResolver().getResources("classpath:/mapper/*/*.xml"));
+                new PathMatchingResourcePatternResolver().getResources("classpath*:/com/iflytek/rpa/auth/**/*Dao.xml"));
         MybatisConfiguration configuration = new MybatisConfiguration();
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.setLogImpl(org.apache.ibatis.logging.stdout.StdOutImpl.class);
@@ -144,8 +147,9 @@ public class MultiDataSourceConfig {
             throws Exception {
         MybatisSqlSessionFactoryBean sessionFactory = new MybatisSqlSessionFactoryBean();
         sessionFactory.setDataSource(dataSource);
+        // Mapper XML文件在Java源码目录下，编译后在classpath的对应包路径下
         sessionFactory.setMapperLocations(
-                new PathMatchingResourcePatternResolver().getResources("classpath:/mapper/*/*.xml"));
+                new PathMatchingResourcePatternResolver().getResources("classpath*:/com/iflytek/rpa/auth/**/*Dao.xml"));
         MybatisConfiguration configuration = new MybatisConfiguration();
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.setLogImpl(org.apache.ibatis.logging.stdout.StdOutImpl.class);
@@ -191,19 +195,29 @@ public class MultiDataSourceConfig {
     /**
      * Casdoor相关DAO的MapperScan配置
      * 指定使用 casdoor 数据源（访问astron-agent-casdoor-mysql）
+     * 扫描 com.iflytek.rpa.auth.sp.casdoor.dao 包，但 MarketUserDao 会被单独配置到 RPA 数据源
      */
     @Configuration
     @MapperScan(
-            basePackages = {
-                    "com.iflytek.rpa.auth.sp.casdoor.dao.CasdoorUserDao",
-                    "com.iflytek.rpa.auth.sp.casdoor.dao.CasdoorTenantDao",
-                    "com.iflytek.rpa.auth.sp.casdoor.dao.CasdoorRoleDao",
-                    "com.iflytek.rpa.auth.sp.casdoor.dao.CasdoorGroupDao"
-            },
+            basePackages = "com.iflytek.rpa.auth.sp.casdoor.dao",
             sqlSessionFactoryRef = "casdoorSqlSessionFactory",
             sqlSessionTemplateRef = "casdoorSqlSessionTemplate")
     static class CasdoorDaoMapperScanConfig {
         // 空配置类，仅用于 @MapperScan 注解
+    }
+
+    /**
+     * MarketUserDao的单独配置
+     * 指定使用 rpa 数据源（访问rpa-opensource-mysql）
+     * 注意：MarketUserDao 在 com.iflytek.rpa.auth.sp.casdoor.dao 包下，但需要使用 RPA 数据源
+     * 因此需要手动注册，避免与 CasdoorDaoMapperScanConfig 冲突
+     */
+    @Bean
+    public MapperFactoryBean<MarketUserDao> marketUserDao(
+            @Qualifier("rpaSqlSessionFactory") SqlSessionFactory sqlSessionFactory) {
+        MapperFactoryBean<MarketUserDao> factoryBean = new MapperFactoryBean<>(MarketUserDao.class);
+        factoryBean.setSqlSessionFactory(sqlSessionFactory);
+        return factoryBean;
     }
 
     /**
@@ -213,7 +227,6 @@ public class MultiDataSourceConfig {
     @Configuration
     @MapperScan(
             basePackages = {
-                    "com.iflytek.rpa.auth.sp.casdoor.dao.MarketUserDao",
                     "com.iflytek.rpa.auth.auditRecord.dao",
                     "com.iflytek.rpa.auth.blacklist.dao",
                     "com.iflytek.rpa.auth.dataPreheater.dao"
