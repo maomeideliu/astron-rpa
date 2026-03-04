@@ -5,6 +5,14 @@ import time
 import cv2
 import numpy as np
 from PIL import Image
+from astronverse.vision_picker.logger import logger
+from astronverse.vision_picker.error import (
+    BizException,
+    IMAGE_NOT_PROVIDED,
+    IMAGE_SAVE_PATH_REQUIRED,
+    IMAGE_PATH_INVALID,
+    IMAGE_SAVE_ERROR,
+)
 
 # def ocr_image(image, flag):
 #     """
@@ -43,7 +51,7 @@ class ImageDetector:
         :return: 原始图像和灰度图像。
         """
         if img is None:
-            raise ValueError("No image provided.")
+            raise BizException(IMAGE_NOT_PROVIDED, "未提供图像")
 
         try:
             # 将 PIL 图像转换为 NumPy 数组
@@ -54,7 +62,7 @@ class ImageDetector:
             gray_pic = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             return image, gray_pic
         except Exception as e:
-            print(f"Error converting image to grayscale: {e}")
+            logger.info(f"Error converting image to grayscale: {e}")
             return None, None
 
     def get_image_from_gradio(self, img):
@@ -366,7 +374,7 @@ class ImageDetector:
 
         end_time = time.time()
         total_time = end_time - start_time
-        print(f"detect_objects 总耗时: {total_time:.3f}秒")
+        logger.info(f"detect_objects 总耗时: {total_time:.3f}秒")
         return self.output_img, selected_boxes
 
     # def detect_ocr_text(self, line_width):
@@ -406,20 +414,20 @@ class ImageDetector:
 
         else:
             if save_path is None:
-                raise ValueError("必须提供 save_path 参数以保存图像。")
+                raise BizException(IMAGE_SAVE_PATH_REQUIRED, "必须提供 save_path 参数以保存图像")
 
             if not os.path.isdir(os.path.dirname(save_path)):
-                raise Exception(f"错误：路径 '{save_path}' 无效或不存在。")
+                raise BizException(IMAGE_PATH_INVALID.format(save_path), f"路径 '{save_path}' 无效或不存在")
 
             try:
                 cv2.imwrite(save_path, self.original_img)
             except Exception as e:
-                raise Exception(f"保存图像时发生错误：{e}")
+                raise BizException(IMAGE_SAVE_ERROR.format(str(e)), f"保存图像时发生错误:{e}")
 
 
 if __name__ == "__main__":
     img_path = r"C:\\Users\\zyfan9\\Desktop\\test image\\q10.png"
     detector = ImageDetector(img_path)
     boxes = detector.detect_objects(None, None)
-    # print("=====> boxes:> ", boxes)
+    # logger.info("=====> boxes:> ", boxes)
     detector.show_or_save_image("C:\\Users\\zyfan9\\Desktop\\show_image")

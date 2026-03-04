@@ -10,6 +10,12 @@ from astronverse.scheduler.core.executor.executor import (
     TaskExecuteStatus,
 )
 from astronverse.scheduler.core.svc import Svc, get_svc
+from astronverse.scheduler.error import (
+    BizException,
+    EXECUTOR_LOG_ERROR,
+    EXECUTOR_TIMEOUT_ERROR,
+    EXECUTOR_START_ERROR_FORMAT,
+)
 from astronverse.scheduler.logger import logger
 from astronverse.scheduler.utils.utils import EmitType, emit_to_front, get_settings
 from fastapi import APIRouter, Depends
@@ -32,6 +38,7 @@ class ExecutorProject(BaseModel):
     run_param: str = ""  # 执行器参数
     open_virtual_desk: bool = False  # 虚拟桌面
     version: Union[int, str] = ""  # 机器人版本
+    is_custom_component: bool = False  # 是否是自定义组件
 
 
 class StopTask(BaseModel):
@@ -110,7 +117,7 @@ def executor_run_list(task_info: TaskInfo, svc: Svc = Depends(get_svc)):
 
         task_executor_id = report_task_log(svc, TaskExecuteStatus.EXECUTING, task_info.trigger_id)
         if not task_executor_id:
-            raise Exception("服务日志上报异常")
+            raise BizException(EXECUTOR_LOG_ERROR, "服务日志上报异常")
 
         end_time = 0
         if task_info.timeout > 0:
@@ -145,7 +152,7 @@ def executor_run_list(task_info: TaskInfo, svc: Svc = Depends(get_svc)):
                     time.sleep(1)
                     if 0 < end_time < time.time():
                         svc.executor_mg.close(executor)
-                        raise Exception("启动失败: 运行超时")
+                        raise BizException(EXECUTOR_TIMEOUT_ERROR, "启动失败: 运行超时")
 
                 # 检查全局状态
                 if temp_terminal_mod != svc.terminal_mod:
@@ -179,13 +186,18 @@ def executor_run_list(task_info: TaskInfo, svc: Svc = Depends(get_svc)):
                         break
                     elif task_info.exceptional == "retry_stop":
                         if t == task_info.retry_num - 1:
-                            raise Exception("启动失败: {}".format(execute_reason))
+                            raise BizException(
+                                EXECUTOR_START_ERROR_FORMAT.format(execute_reason),
+                                "启动失败: {}".format(execute_reason),
+                            )
                     elif task_info.exceptional == "retry_jump":
                         if t == task_info.retry_num - 1:
                             break
                     else:
                         # stop
-                        raise Exception("启动失败: {}".format(execute_reason))
+                        raise BizException(
+                            EXECUTOR_START_ERROR_FORMAT.format(execute_reason), "启动失败: {}".format(execute_reason)
+                        )
 
             if is_break:
                 break
@@ -257,6 +269,7 @@ def executor_run_sync(param: ExecutorProject, svc: Svc = Depends(get_svc)):
         open_virtual_desk=param.open_virtual_desk,
         is_send_log_event=False,
         version=param.version,
+        is_custom_component=param.is_custom_component,
     )
     # 检查是否运行结束
     while svc.executor_mg.status():
@@ -310,6 +323,7 @@ def executor_run(param: ExecutorProject, svc: Svc = Depends(get_svc)):
         open_virtual_desk=param.open_virtual_desk,
         is_send_log_event=True,
         version=param.version,
+        is_custom_component=param.is_custom_component,
     )
     if executor is not None:
         return res_msg(msg="启动成功", data={"addr": "ws://127.0.0.1:{}/".format(executor.exec_port)})

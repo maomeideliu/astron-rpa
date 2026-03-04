@@ -6,7 +6,7 @@ from typing import Any
 import requests
 import sseclient
 from astronverse.actionlib.atomic import atomicMg
-from astronverse.ai.error import *
+from astronverse.ai.error import BizException, LLM_NO_RESPONSE_ERROR_FORMAT, ERROR_FORMAT, UNKNOWN_RESPONSE_ERROR
 from astronverse.baseline.logger.logger import logger
 
 API_URL = "http://127.0.0.1:{}/api/rpa-ai-service/v1/chat/completions".format(
@@ -46,7 +46,7 @@ def chat_streamable(messages: Any, model: str = DEFAULT_MODEL):
                 if response_json.get("choices"):
                     yield response_json["choices"][0]["delta"]["content"]
     else:
-        raise BaseException(LLM_NO_RESPONSE_ERROR.format(response), "")
+        raise BizException(LLM_NO_RESPONSE_ERROR_FORMAT.format(response), "error: {}".format(response))
 
 
 def chat_normal(user_input, system_input="", model=DEFAULT_MODEL):
@@ -57,11 +57,12 @@ def chat_normal(user_input, system_input="", model=DEFAULT_MODEL):
             {"role": "system", "content": system_input},
             {"role": "user", "content": user_input},
         ],
+        "stream": False,
     }
 
     try:
         # 发送 API 请求
-        response = requests.post(API_URL, data=json.dumps(data))
+        response = requests.post(API_URL, json=data)
         response.raise_for_status()  # 检查请求是否成功
 
         # 返回模型生成的回复
@@ -75,7 +76,7 @@ def chat_normal(user_input, system_input="", model=DEFAULT_MODEL):
             # 原格式
             return response_json["choices"][0]["message"]["content"]
         else:
-            raise ValueError("未知的响应格式")
+            raise BizException(UNKNOWN_RESPONSE_ERROR, "未知的响应格式")
 
     except requests.exceptions.RequestException as e:
         logger.info(f"请求错误: {e}")
@@ -95,7 +96,7 @@ def chat_prompt(prompt_type, params, model=DEFAULT_MODEL):
 
     try:
         # 发送 API 请求
-        response = requests.post(PROMPT_URL, data=json.dumps(data))
+        response = requests.post(PROMPT_URL, json=data)
         response.raise_for_status()  # 检查请求是否成功
 
         # 返回模型生成的回复

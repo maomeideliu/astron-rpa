@@ -3,8 +3,25 @@ from typing import Any, Optional, Union
 import requests
 import uiautomation as auto
 from astronverse.baseline.logger.logger import logger
-from astronverse.locator import LIKE_CHROME_BROWSER_TYPES, BrowserType, ILocator, Rect
+from astronverse.locator import (
+    LIKE_CHROME_BROWSER_TYPES,
+    BrowserType,
+    ILocator,
+    Rect,
+    BROWSER_UIA_POINT_CLASS,
+    BROWSER_UIA_WINDOW_CLASS,
+)
 from astronverse.locator.utils.window import top_browser
+from astronverse.locator.error import (
+    BizException,
+    BROWSER_PLUGIN_CHANNEL_ERROR,
+    BROWSER_PLUGIN_COMMUNICATION_ERROR,
+    BROWSER_PLUGIN_GET_ELEMENT_ERROR_FORMAT,
+    BROWSER_PLUGIN_CONNECTION_ERROR,
+    BROWSER_PLUGIN_TIMEOUT_ERROR,
+    BROWSER_WINDOW_NOT_FOUND_FORMAT,
+    ERROR_FORMAT,
+)
 
 
 class WEBLocator(ILocator):
@@ -84,85 +101,80 @@ class WebFactory:
             )
 
             if response.status_code != 200:
-                raise Exception("浏览器插件通信通道出错，请重启应用")
+                raise BizException(BROWSER_PLUGIN_CHANNEL_ERROR, "浏览器插件通信通道出错，请重启应用")
 
             logger.info(f"浏览器插件返回结果: {response.text}")
             res_json = response.json()
 
             if not res_json or res_json.get("code", "") != "0000":  # 通信错误
-                raise Exception("浏览器插件通信失败, 请检查插件是否安装并启用")
+                raise BizException(BROWSER_PLUGIN_COMMUNICATION_ERROR, "浏览器插件通信失败, 请检查插件是否安装并启用")
             elif res_json.get("code", "") == "0000":
                 data = res_json.get("data", {})
                 if data.get("code", "") != "0000":  # 元素错误
-                    raise Exception(data.get("msg", "浏览器插件获取元素失败"))
+                    msg = data.get("msg", "浏览器插件获取元素失败")
+                    raise BizException(BROWSER_PLUGIN_GET_ELEMENT_ERROR_FORMAT.format(msg), msg)
                 web_info = data.get("data", {})
                 return web_info["rect"]
 
         except requests.exceptions.ConnectionError:
-            raise Exception("无法连接浏览器插件服务，请确认插件状态")
+            raise BizException(BROWSER_PLUGIN_CONNECTION_ERROR, "无法连接浏览器插件服务，请确认插件状态")
         except requests.exceptions.Timeout:
-            raise Exception("浏览器插件响应超时，请检查插件是否安装并启用")
+            raise BizException(BROWSER_PLUGIN_TIMEOUT_ERROR, "浏览器插件响应超时，请检查插件是否安装并启用")
         except Exception as e:
-            raise Exception(f"获取元素失败：{e}")
+            error_msg = f"获取元素失败：{e}"
+            raise BizException(ERROR_FORMAT.format(error_msg), error_msg)
 
     @classmethod
     def __get_web_top__(cls, element: dict, app: str) -> tuple[int, int]:
         """浏览器右上角位置"""
-        root_control = auto.GetRootControl()
         app_name = app
-        uiapath_list = element.get("uiapath", "")
-        target_ctl = None if uiapath_list == "" else uiapath_list[0]
-        logger.info(f"weblocator-__get_web_top__ 携带的uia头信息 {target_ctl}")
+        cfg = BROWSER_UIA_WINDOW_CLASS.get(app_name)
+        if not cfg:
+            return 0, 0
+        point_cfg = BROWSER_UIA_POINT_CLASS.get(app_name)
+        if not point_cfg:
+            return 0, 0
 
-        ct = None
-        for control, _ in auto.WalkControl(root_control, includeTop=True, maxDepth=1):
-            if app_name == BrowserType.CHROME.value:
-                if (control.Name == "Chrome Legacy Window") or (
-                    ("- Google Chrome" in control.Name) or ("- Chrome" in control.Name)
-                ):
-                    ct = control
-                    break
-            if app_name == BrowserType.EDGE.value:
-                if "- Microsoft​ Edge" in control.Name:
-                    ct = control
-                    break
-            if app_name == BrowserType.CHROME_360_SE.value:
-                if "360安全浏览器" in control.Name:
-                    ct = control
-                    break
-            if app_name == BrowserType.CHROME_360_X.value:
-                if "360极速浏览器X" in control.Name:
-                    ct = control
-                    break
-            if app_name == BrowserType.FIREFOX.value:
-                if "Mozilla Firefox" in control.Name:
-                    ct = control
-                    break
-            if app_name == BrowserType.CHROMIUM.value:
-                if (control.Name == "Chrome Legacy Window") or ("- Chromium" in control.Name):
-                    ct = control
-                    break
-        if ct is None:
-            raise Exception(f"未找到{app_name}浏览器窗口，请确认浏览器是否已启动")
+        class_name, patterns, match_type = cfg
+        tag_value, tag = point_cfg
 
-        # 置顶
-        # ct.SetActive()
-        handle = ct.NativeWindowHandle
-        top_browser(handle, ct)
-        if app_name == BrowserType.FIREFOX.value:
-            for child, _ in auto.WalkControl(ct, includeTop=True, maxDepth=100):
-                if child.AutomationId == "tabbrowser-tabpanels":
-                    bounding_rect = child.BoundingRectangle
-                    top = bounding_rect.top
-                    left = bounding_rect.left
-                    return top, left
-        else:
-            for child, _ in auto.WalkControl(ct, includeTop=True, maxDepth=100):
-                if child.ClassName == "Chrome_RenderWidgetHostHWND":
-                    bounding_rect = child.BoundingRectangle
-                    top = bounding_rect.top
-                    left = bounding_rect.left
-                    return top, left
+        # 查找窗口
+        root_control = auto.GetRootControl()
+        base_ctrl = None
+        for control, depth in auto.WalkControl(root_control, includeTop=True, maxDepth=1):
+            if control.ClassName != class_name:
+                continue
+            if not patterns:
+                base_ctrl = control
+                break
+            text = control.Name.split("-")[-1].strip() if match_type == "last_in" else control.Name
+            if any(p.lower() in text.lower() for p in patterns):
+                base_ctrl = control
+                break
+
+        if base_ctrl is None:
+            msg = f"未找到{app_name}浏览器窗口，请确认浏览器是否已启动"
+            raise BizException(BROWSER_WINDOW_NOT_FOUND_FORMAT.format(app_name), msg)
+
+        # 置顶窗口
+        try:
+            top_browser(handle=base_ctrl.NativeWindowHandle, ctrl=base_ctrl)
+        except Exception as e:
+            pass
+
+        # 获取位置
+        for control, depth in auto.WalkControl(base_ctrl, includeTop=True, maxDepth=12):
+            if tag == "ClassName":
+                tag_match = control.ClassName
+            elif tag == "AutomationId":
+                tag_match = control.AutomationId
+            else:
+                tag_match = ""
+            if tag_match == tag_value:
+                bounding_rect = control.BoundingRectangle
+                top = bounding_rect.top
+                left = bounding_rect.left
+                return top, left
         return 0, 0
 
 

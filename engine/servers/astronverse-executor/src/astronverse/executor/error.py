@@ -1,10 +1,9 @@
 import re
-from functools import wraps
+from astronverse.baseline.error.error import BizException, BizCode, ErrorCode
+from astronverse.baseline.i18n.i18n import _, i18n
+from astronverse.executor.logger import logger
 
-from astronverse.baseline.error.error import BaseException, BizCode, ErrorCode
-from astronverse.baseline.i18n.i18n import _
-
-BaseException = BaseException
+BizException = BizException
 
 # 通用错误
 SUCCESS: ErrorCode = ErrorCode(BizCode.LocalOK, "ok")
@@ -22,6 +21,10 @@ ONLY_ONE_CATCH_CAN_BE_RETAINED = _("只能保留一个catch语句")
 # 外部获取
 ELEMENT_ACCESS_ERROR_FORMAT: ErrorCode = ErrorCode(BizCode.LocalErr, _("元素获取异常: {}"))
 PROCESS_ACCESS_ERROR_FORMAT: ErrorCode = ErrorCode(BizCode.LocalErr, _("工程数据异常: {}"))
+
+# 执行错误
+TIMEOUT_ERROR: ErrorCode = ErrorCode(BizCode.LocalErr, _("执行超时"))
+SUBPROCESS_ERROR_FORMAT: ErrorCode = ErrorCode(BizCode.LocalErr, _("子进程执行失败，返回码: {}"))
 
 # 报告和状态消息
 MSG_FLOW_INIT_START = _("开始初始化...")
@@ -42,12 +45,16 @@ MSG_SUB_WINDOW = _("子窗口启动")
 MSG_GLOBAL_USE_ERROR_TIP_FORMAT = _('全局变量使用方式过时，推荐使用gv["{}"]')
 
 
-def python_base_error(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except NameError as e:
+def python_base_error(e):
+    if "zh" not in i18n.language:
+        if isinstance(e, BizException):
+            error_str = e.code.message
+            logger.error("BizException: {}".format(e.message))
+            return error_str
+        else:
+            return str(e)
+    else:
+        if isinstance(e, NameError):
             error_str = str(e)
             name_error_translations = [
                 (r"name '(.+)' is not defined", "未定义的名称 '{}'"),
@@ -56,8 +63,8 @@ def python_base_error(func):
                 match = re.search(pattern, error_str)
                 if match:
                     error_str = translation.format(*match.groups())
-            raise BaseException(GENERAL_ERROR_FORMAT.format(error_str), error_str) from e
-        except TypeError as e:
+            return error_str
+        elif isinstance(e, TypeError):
             type_error_translations = [
                 (
                     r"unsupported operand type\(s\) for ([^:]+): '(.+)' and '(.+)'",
@@ -84,8 +91,8 @@ def python_base_error(func):
                 match = re.search(pattern, error_str)
                 if match:
                     error_str = translation.format(*match.groups())
-            raise BaseException(GENERAL_ERROR_FORMAT.format(error_str), error_str) from e
-        except IndexError as e:
+            return error_str
+        elif isinstance(e, IndexError):
             index_error_translations = [
                 (r"list index out of range", "列表索引超出范围"),
                 (r"tuple index out of range", "元组索引超出范围"),
@@ -96,8 +103,8 @@ def python_base_error(func):
                 match = re.search(pattern, error_str)
                 if match:
                     error_str = translation.format(*match.groups())
-            raise BaseException(GENERAL_ERROR_FORMAT.format(error_str), error_str) from e
-        except KeyError as e:
+            return error_str
+        elif isinstance(e, KeyError):
             key_error_translations = [
                 (r"'(.+)'", "字典中不存在键 '{}'"),
             ]
@@ -106,8 +113,8 @@ def python_base_error(func):
                 match = re.search(pattern, error_str)
                 if match:
                     error_str = translation.format(*match.groups())
-            raise BaseException(GENERAL_ERROR_FORMAT.format(error_str), error_str) from e
-        except ValueError as e:
+            return error_str
+        elif isinstance(e, ValueError):
             value_error_translations = [
                 (r"invalid literal for int\(\) with base 10: '(.+)'", "无效的字面量 '{}' 不能转换为整数"),
                 (r"could not convert string to float: '(.+)'", "无效的字面量 '{}' 不能转换为浮点数"),
@@ -117,8 +124,8 @@ def python_base_error(func):
                 match = re.search(pattern, error_str)
                 if match:
                     error_str = translation.format(*match.groups())
-            raise BaseException(GENERAL_ERROR_FORMAT.format(error_str), error_str) from e
-        except AttributeError as e:
+            return error_str
+        elif isinstance(e, AttributeError):
             attribute_error_translations = [
                 (r"(.+) object has no attribute '(.+)'", "{} 对象没有属性 '{}'"),
             ]
@@ -127,11 +134,11 @@ def python_base_error(func):
                 match = re.search(pattern, error_str)
                 if match:
                     error_str = translation.format(*match.groups())
-            raise BaseException(GENERAL_ERROR_FORMAT.format(error_str), error_str) from e
-        except ZeroDivisionError as e:
+            return error_str
+        elif isinstance(e, ZeroDivisionError):
             error_str = "除零错误,除数不能为零"
-            raise BaseException(GENERAL_ERROR_FORMAT.format(error_str), error_str) from e
-        except ImportError as e:
+            return error_str
+        elif isinstance(e, ImportError):
             import_error_translations = [
                 (r"cannot import name '(.+)' from '(.+)'", "无法从 '{}' 导入名称 '{}'"),
                 (r"No module named '(.+)'", "没有名为 '{}' 的模块"),
@@ -141,11 +148,16 @@ def python_base_error(func):
                 match = re.search(pattern, error_str)
                 if match:
                     error_str = translation.format(*match.groups())
-            raise BaseException(GENERAL_ERROR_FORMAT.format(error_str), error_str) from e
-        except SyntaxError as e:
-            error_str = f"语法错误, 文件名: '{e.filename}', 行号: {e.lineno}, 列号: {e.offset}, 代码行: {repr(e.text)}"
-            raise BaseException(GENERAL_ERROR_FORMAT.format(error_str), error_str) from e
-        except Exception as e:
-            raise e
-
-    return wrapper
+            return error_str
+        elif isinstance(e, SyntaxError):
+            error_str = f"语法错误, 检查后重试"
+            return error_str
+        elif isinstance(e, RecursionError):
+            error_str = f"递归深度超限, 检查流程否循环引用"
+            return error_str
+        elif isinstance(e, BizException):
+            error_str = e.code.message
+            logger.error("BizException: {}".format(e.message))
+            return error_str
+        else:
+            return str(e)

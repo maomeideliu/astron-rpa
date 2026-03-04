@@ -4,7 +4,7 @@ import pyautogui
 from astronverse.actionlib import AtomicFormType, AtomicFormTypeMeta, DynamicsItem
 from astronverse.actionlib.atomic import atomicMg
 from astronverse.actionlib.types import WinPick
-from astronverse.actionlib.utils import FileExistenceType, handle_existence
+from astronverse.actionlib.utils import FileExistenceType, handle_existence, Credential
 from astronverse.locator import PickerDomain, Point
 from astronverse.winelement import (
     ElementInputType,
@@ -35,8 +35,8 @@ class WinEle:
         click_button: MouseClickButton = MouseClickButton.LEFT,
         click_type: MouseClickType = MouseClickType.CLICK,
         wait_time: float = 10.0,
-        horizontals_offset=0,
-        verticals_offset=0,
+        horizontals_offset: int = 0,
+        verticals_offset: int = 0,
         keyboard_input: MouseClickKeyboard = MouseClickKeyboard.NONE,
     ):
         locator = WinEleCore.find(pick, wait_time)
@@ -46,7 +46,7 @@ class WinEle:
         if keyboard_input != MouseClickKeyboard.NONE:
             pyautogui.keyDown(keyboard_input.value)
         try:
-            locator.move(Point(point.x + horizontals_offset, point.y + verticals_offset))
+            locator.move(Point(point.x + int(horizontals_offset), point.y + int(verticals_offset)))
             pyautogui.click(
                 clicks=1 if click_type == MouseClickType.CLICK else 2,
                 button=click_button.value,
@@ -86,7 +86,7 @@ class WinEle:
 
         new_file_path = handle_existence(os.path.join(file_path, file_name), exist_type)
         if not new_file_path:
-            raise BaseException(PATH_ERROR, "拾取或保存路径有误")
+            raise BizException(PATH_ERROR, "拾取或保存路径有误")
 
         locator = WinEleCore.find(pick=pick)
         window_rect = locator.rect()
@@ -130,17 +130,30 @@ class WinEle:
                     )
                 ],
             ),
+            atomicMg.param(
+                "credential_text",
+                formType=AtomicFormTypeMeta(type=AtomicFormType.SELECT.value, params={"filters": ["credential"]}),
+                dynamics=[
+                    DynamicsItem(
+                        key="$this.credential_text.show",
+                        expression=f"return $this.input_type.value == '{ElementInputType.Credential.value}'",
+                    )
+                ],
+            ),
         ],
     )
     def input_text_element(
         pick: WinPick,
         input_type: ElementInputType = ElementInputType.KEYBOARD,
         text: str = "",
+        credential_text: str = "",
         clear_first: bool = True,
         wait_time: float = 10.0,
     ):
         if pick.get("elementData", {}).get("type", None) != PickerDomain.UIA.value:
-            raise BaseException(UNPICKABLE, "类型不支持{}".format(pick.get("type", None)))
+            raise BizException(
+                UNPICKABLE_FORMAT.format(pick.get("type", None)), "类型不支持{}".format(pick.get("type", None))
+            )
 
         locator = WinEleCore.find(pick, wait_time)
         locator.move()
@@ -163,6 +176,10 @@ class WinEle:
             uiautomation.SendKeys(text)
         elif input_type == ElementInputType.CLIPBOARD:
             pyautogui.hotkey("ctrl", "v")
+        elif input_type == ElementInputType.Credential:
+            if not credential_text:
+                raise BizException(CREDENTIAL_NOT_SELECTED, "请先选择凭据名称")
+            uiautomation.SendKeys(Credential.get_credential(credential_text))
 
     @staticmethod
     @atomicMg.atomic(
@@ -188,7 +205,9 @@ class WinEle:
     )
     def similar(pick: WinPick, wait_time: int = 10) -> list:
         if pick.get("elementData", {}).get("type", None) != PickerDomain.UIA.value:
-            raise BaseException(UNPICKABLE, "类型不支持{}".format(pick.get("type", None)))
+            raise BizException(
+                UNPICKABLE_FORMAT.format(pick.get("type", None)), "类型不支持{}".format(pick.get("type", None))
+            )
 
         locator_list = WinEleCore.find(pick, wait_time)
         res_list = []

@@ -70,11 +70,6 @@ class CV:
                 level=AtomicLevel.ADVANCED.value,
                 required=False,
             ),
-            atomicMg.param(
-                "match_similarity",
-                formType=AtomicFormTypeMeta(AtomicFormType.SLIDER.value),
-                required=False,
-            ),
             atomicMg.param("move_type", level=AtomicLevel.ADVANCED.value, required=False),
             atomicMg.param(
                 "move_speed",
@@ -118,6 +113,12 @@ class CV:
         :param wait_time: 等待时间
         :return: 空
         """
+        # 从 IMGPick 的 elementData 中获取 similarity，如果不存在则使用 match_similarity
+        if input_data and "elementData" in input_data:
+            element_data = input_data.get("elementData", {})
+            if isinstance(element_data, dict) and "similarity" in element_data:
+                match_similarity = element_data["similarity"]
+
         start_time = time.time()
         while True:
             target_rect = CvCore.match_imgs(input_data=input_data, match_similarity=match_similarity)
@@ -132,7 +133,7 @@ class CV:
                     elif click_position == PositionType.SPECIFIC:
                         position = specified_position
                         if position is None:
-                            raise BaseException(SPECIFIC_POSITION_ERROR, "未指定点击位置，请检查参数")
+                            raise BizException(SPECIFIC_POSITION_ERROR, "未指定点击位置，请检查参数")
                         # 按照指定位置计算点击位置
                         target_x, target_y = CvCore.get_region_position(
                             target_rect, position, horizontal_move, vertical_move
@@ -142,7 +143,7 @@ class CV:
 
                     screen_weight, screen_height = Mouse.screen_size()
                     if target_x < 0 or target_x > screen_weight or target_y < 0 or target_y > screen_height:
-                        raise BaseException(REGION_ERROR, "坐标参数不合法！")
+                        raise BizException(REGION_ERROR, "坐标参数不合法！")
 
                     if move_type == MoveType.LINEAR:
                         Mouse.move(
@@ -172,14 +173,14 @@ class CV:
 
                     return True
                 except Exception as e:
-                    raise BaseException(MOUSE_CLICK_ERROR, "鼠标点击失败")
+                    raise BizException(MOUSE_CLICK_ERROR, "鼠标点击失败")
             else:
                 if time.time() - start_time > wait_time:
                     break
                 else:
                     time.sleep(0.1)
 
-        raise BaseException(CV_MATCH_ERROR, "超时未匹配到目标元素，请检查当前界面或降低匹配相似度重试")
+        raise BizException(CV_MATCH_ERROR, "超时未匹配到目标元素，请检查当前界面或降低匹配相似度重试")
 
     @staticmethod
     @atomicMg.atomic(
@@ -223,11 +224,6 @@ class CV:
                 ],
             ),
             atomicMg.param(
-                "match_similarity",
-                formType=AtomicFormTypeMeta(AtomicFormType.SLIDER.value),
-                required=False,
-            ),
-            atomicMg.param(
                 "wait_time",
                 types="Int",
                 level=AtomicLevel.ADVANCED.value,
@@ -262,7 +258,7 @@ class CV:
         wait_time: int = 10,
     ):
         """
-        鼠标悬浮在图像上
+        鼠标悬停在图像上
         :param input_data: 目标图像
         :param click_position: 点击位置
         :param specified_position: 指定位置
@@ -272,6 +268,12 @@ class CV:
         :param wait_time: 等待时间
         :return: 空
         """
+        # 从 IMGPick 的 elementData 中获取 similarity，如果不存在则使用 match_similarity
+        if input_data and "elementData" in input_data:
+            element_data = input_data.get("elementData", {})
+            if isinstance(element_data, dict) and "similarity" in element_data:
+                match_similarity = element_data["similarity"]
+
         start_time = time.time()
         while True:
             target_rect = CvCore.match_imgs(input_data, match_similarity)
@@ -286,7 +288,7 @@ class CV:
                     elif click_position == PositionType.SPECIFIC:
                         position = specified_position
                         if position is None:
-                            raise BaseException(SPECIFIC_POSITION_ERROR, "未指定点击位置，请检查参数")
+                            raise BizException(SPECIFIC_POSITION_ERROR, "未指定点击位置，请检查参数")
                         # 按照指定位置计算点击位置
                         target_x, target_y = CvCore.get_region_position(
                             target_rect, position, horizontal_move, vertical_move
@@ -296,7 +298,7 @@ class CV:
 
                     screen_weight, screen_height = Mouse.screen_size()
                     if target_x < 0 or target_x > screen_weight or target_y < 0 or target_y > screen_height:
-                        raise BaseException(REGION_ERROR, "坐标参数不合法！")
+                        raise BizException(REGION_ERROR, "坐标参数不合法！")
 
                     if move_type == MoveType.LINEAR:
                         Mouse.move(
@@ -319,14 +321,14 @@ class CV:
 
                     return True
                 except Exception as e:
-                    raise BaseException(MOUSE_HOVER_ERROR, "鼠标悬停失败")
+                    raise BizException(MOUSE_HOVER_ERROR, "鼠标悬停失败")
             else:
                 if time.time() - start_time > wait_time:
                     break
                 else:
                     time.sleep(0.1)
 
-        raise BaseException(CV_MATCH_ERROR, "超时未匹配到目标元素，请检查当前界面或降低匹配相似度重试")
+        raise BizException(CV_MATCH_ERROR, "超时未匹配到目标元素，请检查当前界面或降低匹配相似度重试")
 
     @staticmethod
     @atomicMg.atomic(
@@ -338,11 +340,6 @@ class CV:
                 noInput=True,
             ),
             atomicMg.param("exist_type", required=False),
-            atomicMg.param(
-                "match_similarity",
-                formType=AtomicFormTypeMeta(AtomicFormType.SLIDER.value),
-                required=False,
-            ),
             atomicMg.param(
                 "wait_time",
                 types="Int",
@@ -365,6 +362,12 @@ class CV:
         :param wait_time: 等待时间
         :return: 图像是否存在的结果
         """
+        # 从 IMGPick 的 elementData 中获取 similarity，如果不存在则使用 match_similarity
+        if input_data and "elementData" in input_data:
+            element_data = input_data.get("elementData", {})
+            if isinstance(element_data, dict) and "similarity" in element_data:
+                match_similarity = element_data["similarity"]
+
         start_time = time.time()
 
         while True:
@@ -402,11 +405,6 @@ class CV:
             ),
             atomicMg.param("wait_type", required=False),
             atomicMg.param("wait_time", types="Int", required=False),
-            atomicMg.param(
-                "match_similarity",
-                formType=AtomicFormTypeMeta(AtomicFormType.SLIDER.value),
-                required=False,
-            ),
         ],
         outputList=[atomicMg.param("image_wait_result", types="Bool")],
     )
@@ -424,12 +422,18 @@ class CV:
         :param match_similarity: 匹配相似度
         :return: 等待结果
         """
+        # 从 IMGPick 的 elementData 中获取 similarity，如果不存在则使用 match_similarity
+        if input_data and "elementData" in input_data:
+            element_data = input_data.get("elementData", {})
+            if isinstance(element_data, dict) and "similarity" in element_data:
+                match_similarity = element_data["similarity"]
+
         start_time = time.time()
 
         if wait_type == WaitType.DISAPPEAR:
             target_rect = CvCore.match_imgs(input_data, match_similarity)
             if not target_rect:
-                raise BaseException(TARGET_EXISTS_ERROR, "当前界面元素不存在，无法判断消失状态")
+                raise BizException(TARGET_EXISTS_ERROR, "当前界面元素不存在，无法判断消失状态")
 
         while True:
             target_rect = CvCore.match_imgs(input_data, match_similarity)
@@ -493,11 +497,6 @@ class CV:
                 ],
             ),
             atomicMg.param("wait_time", types="Int", required=False),
-            atomicMg.param(
-                "match_similarity",
-                formType=AtomicFormTypeMeta(AtomicFormType.SLIDER.value),
-                required=False,
-            ),
         ],
         outputList=[],
     )
@@ -520,6 +519,12 @@ class CV:
         :param wait_time: 等待时间
         :param match_similarity: 匹配相似度
         """
+        # 从 IMGPick 的 elementData 中获取 similarity，如果不存在则使用 match_similarity
+        if input_data and "elementData" in input_data:
+            element_data = input_data.get("elementData", {})
+            if isinstance(element_data, dict) and "similarity" in element_data:
+                match_similarity = element_data["similarity"]
+
         start_time = time.time()
         while True:
             target_rect = CvCore.match_imgs(input_data, match_similarity)
@@ -549,7 +554,7 @@ class CV:
                     elif input_type == InputType.CLIP:
                         msg = Clipboard.paste()
                         if not msg:
-                            raise BaseException(CLIP_PASTE_ERROR, "Clip is empty.")
+                            raise BizException(CLIP_PASTE_ERROR, "Clip is empty.")
                         else:
                             Keyboard.hotkey("ctrl", "v")
                             Clipboard.clear()
@@ -558,11 +563,11 @@ class CV:
 
                     return True
                 except Exception as e:
-                    raise BaseException(CV_INPUT_ERROR, "输入失败，请检查输入信息")
+                    raise BizException(CV_INPUT_ERROR, "输入失败，请检查输入信息")
             else:
                 if time.time() - start_time > wait_time:
                     break
                 else:
                     time.sleep(0.5)
 
-        raise BaseException(CV_MATCH_ERROR, "超时未匹配到目标元素，请检查当前界面或降低匹配相似度重试")
+        raise BizException(CV_MATCH_ERROR, "超时未匹配到目标元素，请检查当前界面或降低匹配相似度重试")

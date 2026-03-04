@@ -12,6 +12,14 @@ from enum import Enum
 from astronverse.scheduler.apis.response import ResCode, res_msg
 from astronverse.scheduler.core.schduler.venv import create_project_venv, get_project_venv
 from astronverse.scheduler.core.svc import Svc, get_svc
+from astronverse.scheduler.error import (
+    BizException,
+    ERROR_FORMAT,
+    PARSE_PYTHON_ERROR_FORMAT,
+    DOCSTRING_TITLE_ERROR,
+    PARSE_PARAM_LINE_ERROR_FORMAT,
+    PARSE_FIELD_TYPE_ERROR_FORMAT,
+)
 from astronverse.scheduler.logger import logger
 from astronverse.scheduler.utils.ai import InputType, get_factors
 from astronverse.scheduler.utils.clipboard import Clipboard
@@ -283,6 +291,21 @@ def browser_check_running(plugin_op: BrowserPlugin):
     return res_msg(code=ResCode.ERR, msg="检测失败", data=None)
 
 
+@router.post("/browser/plugins/install_all_updates")
+def update_installed_plugins():
+    """
+    更新已安装的浏览器插件
+    """
+    try:
+        from astronverse.browser_plugin.browser import UpdateManager
+
+        install_results = UpdateManager().update_installed_plugins()
+        return res_msg(msg="更新完成", data=install_results)
+    except Exception as e:
+        logger.exception(e)
+        return res_msg(code=ResCode.ERR, msg="更新失败", data=None)
+
+
 @router.post("/clipboard/get")
 def clipboard_get(is_html: bool):
     """
@@ -326,7 +349,7 @@ def stream_sse(pck: PipPackages, svc: Svc = Depends(get_svc)):
                         return
                 err_info = sub_proc.proc.stderr.read().strip()
                 if err_info:
-                    raise Exception(err_info)
+                    raise BizException(ERROR_FORMAT.format(err_info), err_info)
 
             # 下载并缓存
             download_proc = SubPopen(cmd=PipManager.download_pip_cmd(package, version, mirror)).run(log=True)
@@ -483,7 +506,7 @@ def code_to_meta(pycode: PythonCode):
             # 拼接并清理空行
             docstring = "\n".join([line for line in docstring_lines if line.strip()])
     except Exception as e:
-        raise ValueError(f"解析 Python 代码失败: {e}")
+        raise BizException(PARSE_PYTHON_ERROR_FORMAT.format(e), f"解析 Python 代码失败: {e}")
 
     # 2. 解析 docstring
     lines = [line.strip() for line in docstring.split("\n") if line.strip()]
@@ -493,7 +516,7 @@ def code_to_meta(pycode: PythonCode):
         title_match = re.match(r"^title[:：]\s*(.+)$", lines[0])
         title = title_match.group(1).strip()
     except Exception as e:
-        raise ValueError("docstring 第一行应为 'title: ...'")
+        raise BizException(DOCSTRING_TITLE_ERROR, "docstring 第一行应为 'title: ...'")
 
     # 提取 description（可能多行）
     desc_lines = []
@@ -526,7 +549,7 @@ def code_to_meta(pycode: PythonCode):
             result = {k: v or "" for k, v in match.groupdict().items()}
             return result
         else:
-            raise ValueError(f"无法解析参数行: {line}")
+            raise BizException(PARSE_PARAM_LINE_ERROR_FORMAT.format(line), f"无法解析参数行: {line}")
 
     def safe_str_to_type(value_str: str, target_type: str):
         """
@@ -663,7 +686,7 @@ def code_to_meta(pycode: PythonCode):
                 python_types, control_types = type_hint.split("-")
                 item["types"] = map_type_to_meta_type(python_types)
             except Exception as e:
-                raise ValueError(f"解析字段类型失败: {e}")
+                raise BizException(PARSE_FIELD_TYPE_ERROR_FORMAT.format(e), f"解析字段类型失败: {e}")
             if control_types == "file":
                 item["formType"] = {"type": "INPUT_VARIABLE_PYTHON_FILE", "params": {"file_type": "file"}}
             elif control_types == "folder":

@@ -2,10 +2,10 @@ import argparse
 import time
 import traceback
 from pathlib import Path
-
 import uvicorn
+from astronverse.scheduler.logger import logger
 from astronverse.baseline.config.config import load_config
-from astronverse.scheduler.apis import route
+from astronverse.scheduler.apis import router
 from astronverse.scheduler.config import Config
 from astronverse.scheduler.core.schduler.init import linux_env_check, win_env_check
 from astronverse.scheduler.core.server import ServerManager
@@ -21,25 +21,16 @@ from astronverse.scheduler.core.servers.core_server import (
 )
 from astronverse.scheduler.core.setup.setup import Process
 from astronverse.scheduler.core.svc import get_svc
-from astronverse.scheduler.logger import logger
 from astronverse.scheduler.utils.utils import check_port
 from fastapi import FastAPI
 
 # 0. app实例化，并做初始化
 app = FastAPI()
-route.handler(app)
+router.handler(app)
 
 
-def start():
+def start(args):
     try:
-        # 1. 初始化配置
-        parser = argparse.ArgumentParser(description="{} service".format("scheduler"))
-        parser.add_argument("--conf", type=str, default="../resources/conf.json", help="配置文件")
-        parser.add_argument("--venv", type=str, help="配置文件")
-        args = parser.parse_args()
-
-        logger.info("args: {} service[:{}] start".format(args, "astronverse.scheduler"))
-
         # 2. 读取配置，并解析到上下文
         conf_path = Path(args.conf.strip('"').replace("\\\\", "\\")).resolve()
         conf_data = load_config(conf_path)

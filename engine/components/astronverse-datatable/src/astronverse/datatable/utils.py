@@ -4,10 +4,12 @@ from datetime import datetime
 import openpyxl
 from astronverse.datatable import ConditionType, FilterType
 from astronverse.datatable.error import (
-    COL_FORMAT_ERROR,
-    DATAFRAME_EXPECTION,
-    FORMULA_FORMAT_ERROR,
-    ROW_FORMAT_ERROR,
+    COL_FORMAT_ERROR_FORMAT,
+    BizException,
+    FORMULA_FORMAT_ERROR_FORMAT,
+    ROW_FORMAT_ERROR_FORMAT,
+    COL_RANGE_ERROR,
+    ROW_RANGE_ERROR,
 )
 
 
@@ -24,9 +26,9 @@ def validate(row=1, col="A"):
         pass
     if isinstance(col, str):
         if not (col.isalpha() and col.upper() >= "A"):
-            raise DATAFRAME_EXPECTION(COL_FORMAT_ERROR.format(col), "列格式错误")
+            raise BizException(COL_FORMAT_ERROR_FORMAT.format(col), "列格式错误")
     if not isinstance(row, int) or row < 1:
-        raise DATAFRAME_EXPECTION(ROW_FORMAT_ERROR.format(row), "行格式错误")
+        raise BizException(ROW_FORMAT_ERROR_FORMAT.format(row), "行格式错误")
 
 
 def validate_row(row):
@@ -36,17 +38,17 @@ def validate_row(row):
         pass
     if isinstance(row, int):
         if row < 1:
-            raise DATAFRAME_EXPECTION(ROW_FORMAT_ERROR.format(row), "行格式错误")
+            raise BizException(ROW_FORMAT_ERROR_FORMAT.format(row), "行格式错误")
     else:
-        raise DATAFRAME_EXPECTION(ROW_FORMAT_ERROR.format(row), "行格式错误")
+        raise BizException(ROW_FORMAT_ERROR_FORMAT.format(row), "行格式错误")
 
 
 def validate_col(col):
     if not isinstance(col, str):
-        raise DATAFRAME_EXPECTION(COL_FORMAT_ERROR.format(col), "列格式错误")
+        raise BizException(COL_FORMAT_ERROR_FORMAT.format(col), "列格式错误")
     col = col.upper()
     if not (col.isalpha() and col >= "A"):
-        raise DATAFRAME_EXPECTION(COL_FORMAT_ERROR.format(col), "列格式错误")
+        raise BizException(COL_FORMAT_ERROR_FORMAT.format(col), "列格式错误")
 
 
 def validate_end_col(start_col, end_col):
@@ -55,7 +57,7 @@ def validate_end_col(start_col, end_col):
     start_index = col_to_index(start_col)
     end_index = col_to_index(end_col)
     if end_index < start_index:
-        raise ValueError("结束列不能小于开始列")
+        raise BizException(COL_RANGE_ERROR, "结束列不能小于开始列")
 
 
 def validate_end_row(start_row, end_row):
@@ -63,9 +65,9 @@ def validate_end_row(start_row, end_row):
         start_row = int(start_row)
         end_row = int(end_row)
     except ValueError:
-        raise DATAFRAME_EXPECTION(ROW_FORMAT_ERROR.format(end_row), "行格式错误")
+        raise BizException(ROW_FORMAT_ERROR_FORMAT.format(end_row), "行格式错误")
     if end_row < start_row:
-        raise ValueError("结束行不能小于开始行")
+        raise BizException(ROW_RANGE_ERROR, "结束行不能小于开始行")
 
 
 def col_to_index(col="A") -> int:
@@ -76,7 +78,7 @@ def col_to_index(col="A") -> int:
         pass
     if isinstance(col, int):
         if col < 1:
-            raise DATAFRAME_EXPECTION(COL_FORMAT_ERROR.format(col), "列格式错误")
+            raise BizException(COL_FORMAT_ERROR_FORMAT.format(col), "列格式错误")
         return col
     else:
         col = col.upper()
@@ -102,7 +104,7 @@ def validate_formula(formula: str):
     :param formula: 公式字符串
     """
     if not isinstance(formula, str) or not formula.startswith("="):
-        raise DATAFRAME_EXPECTION(FORMULA_FORMAT_ERROR.format(formula), "公式格式错误")
+        raise BizException(FORMULA_FORMAT_ERROR_FORMAT.format(formula), "公式格式错误")
 
 
 def filter_data(

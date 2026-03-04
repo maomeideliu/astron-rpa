@@ -1,7 +1,9 @@
-import { DEEP_SEARCH_TRIGGER, ELEMENT_SEARCH_TRIGGER, ErrorMessage, HIGH_LIGHT_BORDER, HIGH_LIGHT_DURATION, SCROLL_DELAY, SCROLL_TIMES, StatusCode } from './constant'
+import { DEEP_SEARCH_TRIGGER, ELEMENT_SEARCH_TRIGGER, ErrorMessage, HIGH_LIGHT_BORDER, HIGH_LIGHT_DURATION, SCROLL_DELAY, SCROLL_TIMES, StatusCode } from '../common/constant'
+import { Utils } from '../common/utils'
+import { t } from '../i18n/index'
+
 import { similarBatch, similarListBatch, tableColumnDataBatch, tableDataBatch, tableDataFormatterProcure, tableHeaderBatch } from './dataBatch'
 import {
-  directoryXpath,
   filterVisibleElements,
   findElementByPoint,
   generateXPath,
@@ -12,8 +14,6 @@ import {
   getElementByXPath,
   getElementDirectory,
   getElementsByXpath,
-  getIFramesElements,
-  getIframeTransform,
   getNthCssSelector,
   getSiblingElementByType,
   getText,
@@ -23,24 +23,15 @@ import {
   isTable,
   shadowRootElement,
 } from './element'
-import { sendElementData } from './message'
-import { Utils } from './utils'
+import { currentFrameInfo, loadIframe, tagFrames } from './iframe'
+import { keepServiceWorkerAlive, notifyContentLoaded, sendElementData } from './message'
 import { elementChangeWatcher } from './watcher'
 
-let timeoutId: number | null
-let deepTimeoutId: number | null
+let timeoutId
+let deepTimeoutId
 let highlightTime = 0
 const frontCheckEnabled = false
 let deepSearchEnabled = false
-let currentFrameInfo = {
-  frameId: 0,
-  iframeXpath: '',
-  iframeTransform: {
-    scaleX: 1,
-    scaleY: 1,
-  },
-}
-
 /**
  * Handles a mouse event to locate and process a DOM element at the event's coordinates.
  *
@@ -146,53 +137,6 @@ function formatElementInfo(element: HTMLElement, target: Document | ShadowRoot, 
   return elementData
 }
 
-function messageHandler(ev: MessageEvent) {
-  const { key, data } = ev.data
-  if (data && key === 'setCurrentWindowIframeInfo') {
-    currentFrameInfo = data
-  }
-  if (key === 'getCurrentWindowIframeInfo') {
-    tagFrame()
-  }
-}
-
-/**
- * Tags all iframe elements in the current window by sending their XPath and transform information
- * to their respective content windows via `postMessage`. Additionally, if the current window is
- * within a parent frame, requests the parent window for the current iframe information.
- *
- * This function relies on the helper functions `getIFramesElements`, `getXpath`, and `getIframeTransform`
- * to gather and process iframe data.
- *
- * @remarks
- * - Communicates with iframe content windows using the `setCurrentWindowIframeInfo` message key.
- * - Communicates with the parent window using the `getCurrentWindowIframeInfo` message key.
- */
-function tagFrame() {
-  const iframes = getIFramesElements()
-  iframes.forEach((iframe) => {
-    const iframeInfo = {
-      iframeXpath: directoryXpath(iframe),
-      iframeTransform: getIframeTransform(iframe),
-    }
-    iframe.contentWindow?.postMessage(
-      {
-        key: 'setCurrentWindowIframeInfo',
-        data: iframeInfo,
-      },
-      '*',
-    )
-  })
-  if (window.parent !== window) {
-    window.parent.postMessage(
-      {
-        key: 'getCurrentWindowIframeInfo',
-      },
-      '*',
-    )
-  }
-}
-
 /**
  * Scroll to search for elements. If not found, scroll to search
  * Scroll the current window height up to 20 times at most
@@ -224,10 +168,10 @@ function elementNotFoundReason(data: ElementInfo) {
   if (data.pathDirs && data.pathDirs.length === 0 && checkType === 'visualization') {
     return Utils.fail(ErrorMessage.ELEMENT_INFO_INCOMPLETE, StatusCode.ELEMENT_NOT_FOUND)
   }
-  let message = '未找到元素'
+  let message = ErrorMessage.ELEMENT_NOT_FOUND
   const result = elementChangeWatcher(data)
   if (!result.found) {
-    message = `元素在第${result.notFoundIndex}节点${result.notFoundStep}处发生变动`
+    message = t('errors.elementChangedAtNode', { index: String(result.notFoundIndex), step: result.notFoundStep })
   }
   return Utils.fail(message, StatusCode.ELEMENT_NOT_FOUND)
 }
@@ -384,8 +328,8 @@ const ContentHandler = {
 
     elementIsRender: async (data: ElementInfo) => {
       try {
-        const ele = await ContentHandler.ele.getDom({ ...data, filterVisible: true })
-        return Utils.success(!!ele)
+        const eles = await ContentHandler.ele.getElement({ ...data, filterVisible: true })
+        return Utils.success(eles && eles.length)
       }
       catch (error) {
         return Utils.fail(error.toString(), StatusCode.EXECUTE_ERROR)
@@ -394,8 +338,8 @@ const ContentHandler = {
 
     elementIsReady: async (data: ElementInfo) => {
       try {
-        const ele = await ContentHandler.ele.getDom(data)
-        return Utils.success(!!ele)
+        const eles = await ContentHandler.ele.getElement(data)
+        return Utils.success(eles && eles.length)
       }
       catch (error) {
         return Utils.fail(error.toString(), StatusCode.EXECUTE_ERROR)
@@ -477,12 +421,12 @@ const ContentHandler = {
       const curEles = await ContentHandler.ele.getElement(data)
       if (preEles && curEles) {
         const preSelector = getNthCssSelector(preEles[0], true)
-        const prePathDirs = getElementDirectory(preEles[0], true)
+        const prePathDirs = getElementDirectory(preEles[0])
         const preXpath = generateXPath(prePathDirs)
         const preElementInfo = { ...data.preData, pathDirs: prePathDirs, xpath: preXpath, cssSelector: preSelector }
 
         const curSelector = getNthCssSelector(curEles[0], true)
-        const curPathDirs = getElementDirectory(curEles[0], true)
+        const curPathDirs = getElementDirectory(curEles[0])
         const curXpath = generateXPath(curPathDirs)
         const curElementInfo = { ...data, pathDirs: curPathDirs, xpath: curXpath, cssSelector: curSelector }
 
@@ -729,7 +673,11 @@ const ContentHandler = {
 
     // ---v3
     clickElement: async (data: ElementInfo) => {
-      const result = await ContentHandler.ele.getDom(data)
+      const eles = await ContentHandler.ele.getElement(data)
+      if (eles && eles.length > 1) {
+        return Utils.fail(ErrorMessage.ELEMENT_MULTI_FOUND, StatusCode.EXECUTE_ERROR)
+      }
+      const result = eles ? eles[0] : null
       const { buttonType } = data.atomConfig
       if (!result)
         return elementNotFoundReason(data)
@@ -754,7 +702,11 @@ const ContentHandler = {
     },
 
     inputElement: async (data: ElementInfo) => {
-      const result = (await ContentHandler.ele.getDom(data)) as HTMLInputElement | HTMLTextAreaElement
+      const eles = await ContentHandler.ele.getElement(data)
+      if (eles && eles.length > 1) {
+        return Utils.fail(ErrorMessage.ELEMENT_MULTI_FOUND, StatusCode.EXECUTE_ERROR)
+      }
+      const result = (eles ? eles[0] : null) as HTMLInputElement | HTMLTextAreaElement | null
       const { inputText } = data.atomConfig
       if (result) {
         if (result.tagName !== 'INPUT' && result.tagName !== 'TEXTAREA') {
@@ -983,8 +935,13 @@ const ContentHandler = {
     getTableData: async (data: ElementInfo) => {
       const result = (await ContentHandler.ele.getDom(data)) as HTMLTableElement
       if (result) {
-        const res = tableDataFormatterProcure(result)
-        return Utils.success(res)
+        if (isTable(result)) {
+          const res = tableDataFormatterProcure(result)
+          return Utils.success(res)
+        }
+        else {
+          return Utils.fail(ErrorMessage.ELEMENT_NOT_TABLE, StatusCode.EXECUTE_ERROR)
+        }
       }
       else {
         return elementNotFoundReason(data)
@@ -1072,12 +1029,21 @@ const ContentHandler = {
     getFrameInfo(data: { frameId: number }) {
       const { frameId } = data
       console.log(`rpa_debugger_on:${frameId}`) // !!! Do not delete. Rely on this code to determine which frame chrome.debugger is injected into
-      tagFrame()
       currentFrameInfo.frameId = frameId
+      tagFrames()
       return currentFrameInfo
     },
-
-    getIframeElement: (data: Point) => {
+    findIframeId(xpath: string) {
+      const iframeEle = getElementByXPath(xpath)
+      if (iframeEle) {
+        const frameId = iframeEle.dataset.astronFrameId
+        return { frameId: frameId ? Number(frameId) : null }
+      }
+      else {
+        return { frameId: null }
+      }
+    },
+    getIframeElement(data: Point) {
       const { x, y } = data
       const dpr = window.devicePixelRatio
       const realX = x / dpr
@@ -1099,7 +1065,7 @@ const ContentHandler = {
             x: (left + borderLeft + paddingLeft) * dpr,
             y: (top + borderTop + paddingTop) * dpr,
           }
-          tagFrame()
+          tagFrames()
         }
         const iframeInfo = formatElementInfo(iframeEle, document)
         return { ...iframeInfo, nextPos, iframeContentRect }
@@ -1172,8 +1138,10 @@ function RpaExtGetElement(data) {
   }
 }
 
-window.removeEventListener('message', messageHandler)
-window.addEventListener('message', messageHandler)
+loadIframe()
+keepServiceWorkerAlive()
+window.addEventListener('load', loadIframe)
+window.addEventListener('load', notifyContentLoaded)
 // @ts-expect-error Mount to window
 window.handle = handle
 // @ts-expect-error  Mount to window
@@ -1182,5 +1150,4 @@ window.handleSync = handleSync
 window.RpaExtGetElement = RpaExtGetElement
 // @ts-expect-error Mount to window
 window.currentFrameInfo = currentFrameInfo
-tagFrame()
 export { ContentHandler, dispatchMouseSequence, formatElementInfo, handle, moveListener }

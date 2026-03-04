@@ -1,6 +1,7 @@
-import { MAX_ATTRIBUTE_LENGTH, MAX_TEXT_INCLUDE_LENGTH, MAX_TEXT_LENGTH, SVG_NODETAGS } from './constant'
+import { MAX_TEXT_INCLUDE_LENGTH, MAX_TEXT_LENGTH, SVG_NODETAGS } from '../common/constant'
+import { Utils } from '../common/utils'
+
 import { highLight, highLightRects } from './highlight'
-import { Utils } from './utils'
 
 function getSupportTag(tagName: string) {
   if (Utils.isSpecialCharacter(tagName)) {
@@ -145,7 +146,7 @@ function elementFromPoint(x: number, y: number, docu: Document | ShadowRoot) {
 }
 
 function isUniqueIdFn(id: string) {
-  return id && !Utils.isSpecialCharacter(id) && document.querySelectorAll(`#${id}`).length === 1
+  return id && !Utils.isNumberString(id) && !Utils.isSpecialCharacter(id) && document.querySelectorAll(`#${id}`).length === 1
 }
 
 function isHighWeightClass(cls: string) {
@@ -456,21 +457,21 @@ function getShadowElementsBySelector(selector: string) {
  * @returns The updated array of `ElementDirectory` objects with potentially modified 'index' attribute states.
  */
 function rebuildDirectory(originElement: HTMLElement, dirs: ElementDirectory[]) {
-  // Re-weight dirs again, try to uncheck the index of each node
+  const idIndex = dirs.findLastIndex(dir => dir.attrs.some(attr => attr.name === 'id' && attr.checked))
   for (let i = dirs.length - 1; i >= 0; i--) {
     const dir = dirs[i]
-    const idAttr = dir.attrs.find(attr => attr.name === 'id' && attr.checked)
-    if (idAttr) {
-      dir.attrs.forEach((attr) => {
-        attr.checked = attr.name === 'id'
-      })
+    if (idIndex !== -1 && i < idIndex) {
+      // try to uncheck dir.checked
+      dir.checked = false
+      dir.attrs.forEach(attr => attr.checked = false)
     }
+    // try to uncheck index attr
     const indexAttr = dir.attrs.find(attr => attr.name === 'index')
-    if (indexAttr && indexAttr.checked) {
+    if (indexAttr?.checked) {
       indexAttr.checked = false
       const xpath = generateXPath(dirs)
       const elements = getElementsByXpath(xpath)
-      const ignoreIndex = elements && elements.length === 1 && elements[0] === originElement
+      const ignoreIndex = elements?.length === 1 && elements[0] === originElement
       if (!ignoreIndex) {
         indexAttr.checked = true
       }
@@ -484,28 +485,22 @@ function rebuildDirectory(originElement: HTMLElement, dirs: ElementDirectory[]) 
  * The directory is built from the element up to the root or until a unique identifier is found.
  *
  * @param element - The target HTMLElement for which to generate the directory.
- * @param isAbsolute - If true, traverses up to the root element regardless of unique identifiers; otherwise, stops at a unique id or the body element.
  * @returns An array of `ElementDirectory` objects, each describing an ancestor element and its relevant attributes.
  */
-export function getElementDirectory(element: HTMLElement, isAbsolute = false): ElementDirectory[] {
+export function getElementDirectory(element: HTMLElement): ElementDirectory[] {
   if (!element)
     return []
   const originElement = element
   const elementDirectory = []
   while (element) {
     const id = getAttr(element, 'id')
-    const name = getAttr(element, 'name')
     const className = pickClass(element)
     const type = getAttr(element, 'type')
-    const title = getAttr(element, 'title')
-    const placeholder = getAttr(element, 'placeholder')
-    const value = getAttr(element, 'value')
     const text = getNodeText(element)
     let tagName = getSupportTag(element.tagName.toLowerCase())
     let index = getElementIndex(element)
     let hasSubling = hasSameTypeSiblings(element)
     const isSvg = isSvgElement(element)
-    const isUniqueId = isUniqueIdFn(id)
 
     tagName = isSvg ? `*` : tagName
     index = isSvg ? getAllElementIndex(element) : index
@@ -513,8 +508,10 @@ export function getElementDirectory(element: HTMLElement, isAbsolute = false): E
 
     // assemble attrs with initial weights
     const attrs = []
-    if (isUniqueId)
-      attrs.push({ name: 'id', value: id, checked: true, type: 0 })
+    if (id) {
+      const idChecked = isUniqueIdFn(id)
+      attrs.push({ name: 'id', value: id, checked: idChecked, type: 0 })
+    }
     if (isSvg)
       attrs.push({ name: 'local-name', value: element.tagName.toLowerCase(), checked: true, type: 0 })
     if (hasSubling && index)
@@ -529,25 +526,22 @@ export function getElementDirectory(element: HTMLElement, isAbsolute = false): E
       const textChecked = text.length < MAX_TEXT_LENGTH && Utils.isEffectCharacter(text) && !Utils.isControlCharacter(text)
       attrs.push({ name: 'text', value: text, checked: textChecked, type: 1 })
     }
-    if (placeholder && placeholder.length < MAX_ATTRIBUTE_LENGTH) {
-      attrs.push({ name: 'placeholder', value: placeholder, checked: false, type: 0 })
-    }
-    if (value && value.length < MAX_ATTRIBUTE_LENGTH) {
-      attrs.push({ name: 'value', value, checked: false, type: 0 })
-    }
-    if (title && title.length < MAX_ATTRIBUTE_LENGTH) {
-      attrs.push({ name: 'title', value: title, checked: false, type: 0 })
-    }
-    if (name && name.length < MAX_ATTRIBUTE_LENGTH) {
-      attrs.push({ name: 'name', value: name, checked: false, type: 0 })
+
+    // other optional attrs from element attributes
+    const eleAttrs = element.attributes
+    const specialAttrs = ['id', 'class', 'type', 'text', 'index', 'local-name']
+    for (const key in eleAttrs) {
+      if (typeof eleAttrs[key] === 'object') {
+        const attrName = eleAttrs[key].name
+        const attrValue = eleAttrs[key].value
+        if (attrName && attrValue && !specialAttrs.includes(attrName)) {
+          attrs.push({ name: attrName, value: attrValue, checked: false, type: 0 })
+        }
+      }
     }
 
     const attributes = { tag: tagName, checked: true, value: tagName, attrs }
     elementDirectory.unshift(attributes)
-    // id has highest weight, stop here
-    if (id && isUniqueId && !isAbsolute) {
-      return rebuildDirectory(originElement, elementDirectory)
-    }
     element = element.parentElement
     if (element && element.tagName.toLowerCase() === 'body') {
       return rebuildDirectory(originElement, elementDirectory)
@@ -630,6 +624,7 @@ function directoryFindElement(elementDirectory: ElementDirectory[], onlyPosition
   searchElements = getElementsByXpath(xpath, onlyPosition)
   if (searchElements && searchElements.length > 0) {
     searchElements = checkElementsByRegular(searchElements, elementDirectory)
+    // console.log(xpath, searchElements.length);
     return searchElements
   }
   else {
@@ -727,12 +722,15 @@ export function generateXPath(dirs: ElementDirectory[], onlyPosition: boolean = 
       })
     })
   }
-  const xpath = dirs
-    .filter(dir => dir.checked)
-    .map((dir) => {
+  let xpath = ''
+  let checkedDirIndex = 0
+  for (let i = 0; i < dirs.length; i++) {
+    const dir = dirs[i]
+    if (dir.checked) {
       const attrs = dir.attrs
         .filter((attr) => {
-          if (attr.type === 2 && attr.value && attr.checked) {
+          // exclude type 2 (regex) attrs
+          if (attr.type === 2 && attr.checked) {
             return false
           }
           else {
@@ -744,13 +742,19 @@ export function generateXPath(dirs: ElementDirectory[], onlyPosition: boolean = 
           return condition
         })
         .join(' and ')
-      return attrs ? `${dir.tag}[${attrs}]` : dir.tag
-    })
-    .join('/')
-  if (xpath.startsWith('html')) {
-    return `/${xpath}`
+      const segment = attrs ? `${dir.tag}[${attrs}]` : dir.tag
+      let prefix = '/'
+      if (i === 0) {
+        prefix = dir.tag === 'html' ? '/' : '//'
+      }
+      if (Math.abs(i - checkedDirIndex) > 1) {
+        prefix = '//'
+      }
+      xpath += `${prefix}${segment}`
+      checkedDirIndex = i
+    }
   }
-  return `//${xpath}`
+  return xpath
 }
 
 export function hasChildElement(element) {

@@ -1,24 +1,13 @@
-import platform
-import sys
 from typing import Union
 
-from astronverse.actionlib.types import WebPick
+from astronverse.actionlib.types import WebPick, URL
 from astronverse.baseline.logger.logger import logger
 from astronverse.browser import *
 from astronverse.browser.browser import Browser
 from astronverse.browser.browser_element import BrowserElement
 from astronverse.browser.browser_software import BrowserSoftware
-from astronverse.browser.core.core import IBrowserCore
 from astronverse.smart.browser_ai.web_element import WebElement
-
-if sys.platform == "win32":
-    from astronverse.browser.core.core_win import BrowserCore
-elif platform.system() == "Linux":
-    from astronverse.browser.core.core_unix import BrowserCore
-else:
-    raise NotImplementedError("Your platform (%s) is not supported by (%s)." % (platform.system(), "clipboard"))
-
-BrowserCore: IBrowserCore = BrowserCore()
+from astronverse.smart.error import BizException, PARAM_ERROR, ELEMENT_NOT_FOUND, UNSUPPORTED_TYPE
 
 
 class WebBrowser:
@@ -47,12 +36,12 @@ class WebBrowser:
     def get_element_by_web_pick(self, web_pick: WebPick) -> WebElement:
         return WebElement(browser=self.browser, element_data=web_pick)
 
-    def open_web(self, url: str) -> None:
+    def open_web(self, url: str):
         """
         open the browser page.
         * @param url, the URL of the page to open
         """
-        browser = BrowserSoftware.web_open(browser_obj=self.browser, new_tab_url=url, wait_page=True)
+        browser = BrowserSoftware.web_open(browser_obj=self.browser, new_tab_url=URL(url), wait_page=True)
         return WebBrowser(browser=browser)
 
     def go_back(self, *, load_timeout=10) -> None:
@@ -92,7 +81,10 @@ class WebBrowser:
         elif location == "top":
             y_scroll_type = ScrollbarForYScrollTypeFlag.Top
         else:
-            raise ValueError(f"Unsupported location: {location}. Supported values are 'top' and 'bottom'")
+            raise BizException(
+                PARAM_ERROR.format(f"location: {location}"),
+                f"不支持的位置参数: {location}，支持的值为 'top' 和 'bottom'",
+            )
 
         BrowserElement.scroll(
             browser_obj=self.browser,
@@ -172,12 +164,14 @@ class WebBrowser:
         elif isinstance(xpath_selector, str):
             elements = self.find_elements_by_xpath(xpath_selector, timeout=timeout)
             if not elements:
-                raise Exception("element not found")
+                raise BizException(ELEMENT_NOT_FOUND, "元素未找到")
             logger.info(str(elements))
             web_element = elements[0]
             element_data = elements[0].element_data
         else:
-            raise Exception(f"Unsupported xpath selector type: {type(xpath_selector)}")
+            raise BizException(
+                UNSUPPORTED_TYPE.format(type(xpath_selector)), f"不支持的 xpath 选择器类型: {type(xpath_selector)}"
+            )
 
         exist = BrowserElement().wait_element(
             browser_obj=self.browser,
@@ -186,7 +180,7 @@ class WebBrowser:
             element_timeout=timeout,
         )
         if not exist:
-            raise Exception("element not found")
+            raise BizException(ELEMENT_NOT_FOUND, "元素未找到")
 
         return web_element
 
@@ -232,4 +226,4 @@ class WebBrowser:
             return valid_elements
 
         else:
-            raise Exception(f"Unsupported xpath selector: {xpath_selector}")
+            raise BizException(UNSUPPORTED_TYPE.format(xpath_selector), f"不支持的 xpath 选择器: {xpath_selector}")

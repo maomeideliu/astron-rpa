@@ -2,7 +2,9 @@ import subprocess
 import sys
 import winreg
 
+from astronverse.baseline.logger.logger import logger
 from astronverse.browser_plugin import PluginData, PluginManagerCore, PluginStatus
+from astronverse.browser_plugin.error import BizException, FIREFOX_NOT_FOUND
 from astronverse.browser_plugin.utils import FirefoxUtils, Registry, is_browser_running, kill_process
 
 
@@ -20,19 +22,30 @@ class FirefoxPluginManager(PluginManagerCore):
                     path, _ = winreg.QueryValueEx(main_key, "PathToExe")
                     return path
         except FileNotFoundError:
-            raise FileNotFoundError("Firefox is not installed or the registry key is not found.")
+            raise BizException(FIREFOX_NOT_FOUND, "Firefox 未安装或注册表项未找到")
 
     def check_browser(self):
-        return Registry.exist(self.browser_path)
+        browser_registry = Registry.exist(self.browser_path)
+        if browser_registry:
+            try:
+                self.get_browser_path()
+                return True
+            except FileNotFoundError:
+                return False
+        return browser_registry
 
     def check_plugin(self):
         installed, installed_version = FirefoxUtils.check()
-
         latest_version = self.plugin_data.plugin_version
         latest = installed_version == latest_version
-
+        browser_installed = self.check_browser()
+        logger.info(f"Firefox plugin installed: {installed}, installed_version: {installed_version}")
         return PluginStatus(
-            installed=installed, installed_version=installed_version, latest_version=latest_version, latest=latest
+            installed=installed,
+            installed_version=installed_version,
+            latest_version=latest_version,
+            latest=latest,
+            browser_installed=browser_installed,
         )
 
     def close_browser(self):

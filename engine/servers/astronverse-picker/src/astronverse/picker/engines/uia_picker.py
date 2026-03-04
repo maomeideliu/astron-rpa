@@ -2,11 +2,12 @@ from typing import Any, Optional
 
 import pyautogui
 import uiautomation as auto
-from astronverse.picker import APP, IElement, PickerDomain, PickerType, Point, Rect
+from astronverse.picker import APP, IElement, PickerDomain, PickerType, Point, Rect, BROWSER_UIA_POINT_CLASS
 from astronverse.picker.logger import logger
 from astronverse.picker.utils.cv import screenshot
 from astronverse.picker.utils.process import get_process_name
 from astronverse.picker.utils.window import validate_window_rect
+from astronverse.picker.error import BizException, TAG_NAME_EMPTY_ERROR, SIMILAR_ELEMENT_NOT_FOUND_ERROR
 
 element_aliases = {
     "AppBarControl": "应用程序栏",
@@ -229,7 +230,7 @@ class UIAElement(IElement):
             return disable_keys
         else:
             # tag_name 为空（不应该出现）
-            raise Exception("tag_name 为空，无法唯一识别元素")
+            raise BizException(TAG_NAME_EMPTY_ERROR, "tag_name 为空，无法唯一识别元素")
 
     def _calculate_disable_keys_progressive(
         self, current_attrs: dict, parent_control, current_control, is_root_level: bool = False
@@ -392,7 +393,7 @@ class UIAElement(IElement):
 
             similar_path = UIAPicker.get_similar_path(strategy_svc, res)
             if similar_path is None:
-                raise Exception("找不到相识元素")
+                raise BizException(SIMILAR_ELEMENT_NOT_FOUND_ERROR, "找不到相似元素")
             res["path"] = similar_path
             res["img"]["self"] = strategy_svc.data.get("data", {}).get("img", {}).get("self", "")
             res["picker_type"] = PickerType.SIMILAR.value  # 这个需要在这里提前写好，才能交给locator使用
@@ -400,9 +401,9 @@ class UIAElement(IElement):
             if isinstance(similar_list, list):
                 similar_count = len(similar_list)
                 if similar_count == 0:
-                    raise Exception("找不到相识元素")
+                    raise BizException(SIMILAR_ELEMENT_NOT_FOUND_ERROR, "找不到相似元素")
             else:
-                raise Exception("找不到相识元素")
+                raise BizException(SIMILAR_ELEMENT_NOT_FOUND_ERROR, "找不到相似元素")
             res["similar_count"] = similar_count
         return res
 
@@ -461,6 +462,13 @@ class UIAPicker:
                     cls._search_elements_recursively(res_list, child, point, ignore_parent_zero, deep + 1)
 
     @classmethod
+    def _normalize_attr(cls, val):
+        """将属性值归一化为字符串以避免类型不匹配（如 str '0' vs int 0）"""
+        if val is None:
+            return None
+        return str(val)
+
+    @classmethod
     def get_similar_path(cls, strategy_svc, curr_path):
         """用户给定两个相似元素"""
 
@@ -484,8 +492,8 @@ class UIAPicker:
             if i == 0:
                 attrs = ["tag_name", "cls", "name", "value"]
                 for attr in attrs:
-                    self_attr = path1[i].get(attr, None)
-                    other_attr = path2[i].get(attr, None)
+                    self_attr = cls._normalize_attr(path1[i].get(attr, None))
+                    other_attr = cls._normalize_attr(path2[i].get(attr, None))
                     if self_attr and other_attr and self_attr != other_attr:
                         return None
                 path1[i]["similar_parent"] = True
@@ -493,8 +501,8 @@ class UIAPicker:
                 is_eq = True
                 attrs = ["tag_name", "cls", "name", "value", "index"]
                 for attr in attrs:
-                    self_attr = path1[i].get(attr, None)
-                    other_attr = path2[i].get(attr, None)
+                    self_attr = cls._normalize_attr(path1[i].get(attr, None))
+                    other_attr = cls._normalize_attr(path2[i].get(attr, None))
                     if self_attr is not None and other_attr is not None and self_attr != other_attr:
                         is_eq = False
                         break
@@ -632,35 +640,36 @@ class UIAOperate:
     def get_web_control(
         cls,
         control: auto.Control,
-        target_class_names: list,
         app: APP = None,
         point=None,
     ) -> tuple[bool, int, int, Any]:
-        # logger.info(f"get_web_control app: {app}")
         x = point.x
         y = point.y
+        point_cfg = BROWSER_UIA_POINT_CLASS.get(app.value)
+        if not point_cfg:
+            return False, 0, 0, 0
+        tag_value, tag = point_cfg
         while control:
-            if app == APP.Firefox:
+            if app in [APP.Firefox]:
+                # Firefox: 向下遍历子树查找，需要边界判断
                 for child, _ in auto.WalkControl(control, includeTop=True, maxDepth=10):
-                    if child.AutomationId == "tabbrowser-tabpanels":
-                        if (
-                            x >= child.BoundingRectangle.left
-                            and x <= child.BoundingRectangle.right
-                            and y >= child.BoundingRectangle.top
-                            and y <= child.BoundingRectangle.bottom
-                        ):
-                            bound = child.BoundingRectangle
+                    if child.AutomationId == tag_value:
+                        bound = child.BoundingRectangle
+                        if bound.left <= x <= bound.right and bound.top <= y <= bound.bottom:
                             return True, bound.top, bound.left, child.NativeWindowHandle
                         else:
                             return False, 0, 0, 0
             else:
-                if control.ClassName in target_class_names:
+                # 其他浏览器: 向上逐级检查当前控件的 ClassName
+                if tag == "ClassName":
+                    tag_match = control.ClassName
+                elif tag == "AutomationId":
+                    tag_match = control.AutomationId
+                else:
+                    tag_match = ""
+                if tag_match == tag_value:
                     bound = control.BoundingRectangle
                     return True, bound.top, bound.left, control.NativeWindowHandle
-                    # if UIAOperate.is_control_value_diff_from_web_inject(control):
-                    #     return True, bound.top, bound.left, control.NativeWindowHandle
-                    # else:
-                    #     return False, bound.top, bound.left, control.NativeWindowHandle
             control = control.GetParentControl()
         return False, 0, 0, None
 
