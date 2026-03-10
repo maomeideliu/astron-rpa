@@ -2119,9 +2119,40 @@ public class CasdoorUserServiceImpl implements UserService {
     @Override
     public AppResponse<List<TenantUser>> getMarketTenantUserList(
             GetMarketTenantUserListDto dto, HttpServletRequest request) {
-        return null;
-    }
+        try {
+            log.debug("开始根据用户ID列表查询租户用户列表，tenantId: {}, userIdList size: {}", 
+                    dto != null ? dto.getTenantId() : "null",
+                    dto != null && dto.getUserIdList() != null ? dto.getUserIdList().size() : 0);
 
+            // 参数校验
+            if (dto == null) {
+                log.warn("根据用户ID列表查询租户用户列表失败：参数为空");
+                return AppResponse.error(ErrorCodeEnum.E_PARAM_LOSE, "查询参数不能为空");
+            }
+
+            if (StringUtils.isBlank(dto.getTenantId())) {
+                log.warn("根据用户ID列表查询租户用户列表失败：租户ID为空");
+                return AppResponse.error(ErrorCodeEnum.E_PARAM_LOSE, "租户ID不能为空");
+            }
+
+            if (CollectionUtils.isEmpty(dto.getUserIdList())) {
+                log.debug("用户ID列表为空，返回空列表");
+                return AppResponse.success(Collections.emptyList());
+            }
+
+            // 调用DAO查询租户用户列表
+            List<TenantUser> result = casdoorUserDao.getMarketTenantUserList(dto, databaseName);
+            
+            log.debug("根据用户ID列表查询租户用户列表成功，返回 {} 条结果，tenantId: {}", 
+                    result != null ? result.size() : 0, dto.getTenantId());
+            
+            return AppResponse.success(result != null ? result : Collections.emptyList());
+        } catch (Exception e) {
+            log.error("根据用户ID列表查询租户用户列表失败，tenantId: {}", 
+                    dto != null ? dto.getTenantId() : "null", e);
+            return AppResponse.error(ErrorCodeEnum.E_SERVICE, "根据用户ID列表查询租户用户列表失败: " + e.getMessage());
+        }
+    }
     @Override
     public AppResponse<String> logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
