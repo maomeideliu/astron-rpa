@@ -107,6 +107,21 @@
         LIMIT 1000
     </select>
 
+    <!-- 根据用户ID列表查询租户用户列表 -->
+    <select id="getMarketTenantUserList" resultType="com.iflytek.rpa.auth.core.entity.TenantUser">
+        SELECT
+            u.owner tenantId,
+            u.id userId
+        FROM
+            ${databaseName}.`user` u
+        WHERE
+            u.is_deleted = 0
+            AND u.owner = #{dto.tenantId}
+            AND u.id IN
+            <foreach collection="dto.userIdList" item="userId" open="(" close=")" separator=",">
+                #{userId}
+            </foreach>
+    </select>
 
 </mapper>
 

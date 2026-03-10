@@ -1,5 +1,7 @@
 package com.iflytek.rpa.auth.sp.casdoor.dao;
 
+import com.iflytek.rpa.auth.core.entity.GetMarketTenantUserListDto;
+import com.iflytek.rpa.auth.core.entity.TenantUser;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -46,4 +48,14 @@ public interface CasdoorUserDao {
      */
     List<User> searchUserByNameOrPhone(
             @Param("keyword") String keyword, @Param("owner") String owner, @Param("databaseName") String databaseName);
+
+    /**
+     * 根据用户ID列表查询租户用户列表
+     *
+     * @param dto 查询条件（包含租户ID和用户ID列表）
+     * @param databaseName 数据库名称
+     * @return 租户用户列表
+     */
+    List<TenantUser> getMarketTenantUserList(
+            @Param("dto") GetMarketTenantUserListDto dto, @Param("databaseName") String databaseName);
 }
