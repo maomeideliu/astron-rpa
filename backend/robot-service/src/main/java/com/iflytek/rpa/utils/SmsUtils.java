@@ -17,16 +17,16 @@ import org.springframework.web.client.RestTemplate;
  */
 @Component
 public class SmsUtils {
-    @Value("${sms.apiUrl:https://dripsms.xfpaas.com/sms}")
+    @Value("${sms.apiUrl:}")
     public String apiSendSms;
 
-    @Value("${sms.secretKey:9a530169680ac3428c7ae3125391b5e8}")
+    @Value("${sms.secretKey:}")
     public String secretKey;
 
-    @Value("${sms.appId:KVQ8D5K11R}")
+    @Value("${sms.appId:}")
     public String appId;
 
-    @Value("${sms.tid:16696}")
+    @Value("${sms.tid:}")
     public String tid;
 
     /**
