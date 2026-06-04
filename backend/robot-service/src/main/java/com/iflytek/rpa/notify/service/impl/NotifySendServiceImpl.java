@@ -292,7 +292,7 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
         if (resp == null || resp.getData() == null) {
             throw new ServiceException("租户信息获取失败");
         }
-        String tenantId = resp.getData();
+        String currentTenantId = resp.getData();
 
         NotifySend notifySend = baseMapper.selectById(notifyId);
         if (notifySend == null) {
@@ -300,6 +300,10 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
         }
         if (!userId.equals(notifySend.getUserId())) {
             return AppResponse.error("越权访问");
+        }
+        // 校验当前会话租户与通知租户一致，避免用户切租户后接受邀请导致成员写到错误租户
+        if (!currentTenantId.equals(notifySend.getTenantId())) {
+            return AppResponse.error(ErrorCodeEnum.E_SERVICE_POWER_LIMIT, "请在邀请所属租户下接受邀请");
         }
 
         if (notifySend.getOperateResult().equals(3)
@@ -324,6 +328,8 @@ public class NotifySendServiceImpl extends ServiceImpl<NotifySendMapper, NotifyS
             appMarketUser.setUserType(notifySend.getUserType());
             appMarketUser.setCreatorId(userId);
             appMarketUser.setUpdaterId(userId);
+            // 使用通知所属的租户(也是市场租户),而非当前会话租户,避免用户切租户场景下写错
+            appMarketUser.setTenantId(notifySend.getTenantId());
 
             int insert = appMarketUserDao.insert(appMarketUser);
             boolean b = baseMapper.joinTeam(notifyId);
